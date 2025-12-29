@@ -35,16 +35,16 @@
     <script>
         const regionMap = {};
 
-        async function getRegionList() {
+        async function getRegionMap() {
             const response = await fetch('/data/regions.json');
             const regions = await response.json();
             for (const [id, info] of Object.entries(regions)) {
-                regionMap[id] = info.name;
+                regionMap[id] = info;
             }
         }
         // Populate the dropdown menu with regions
         async function populateRegionDropdown() {
-            await getRegionList(); // Ensure regionMap is populated
+            await getRegionMap(); // Ensure regionMap is populated
             //clear existing options
             const select = document.getElementById('regionSelect');
             select.innerHTML = '';
