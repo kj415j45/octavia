@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Octavia - 千星奇域工具</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+
+<body>
+    <header>
+        <nav class="navbar bg-body-tertiary">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">Octavia - 千星奇域工具</span>
+                <select class="form-select w-auto" id="regionSelect">
+                    <option selected disabled>选择服务器</option>
+                </select>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container d-flex flex-column justify-content-center align-items-center" style="height: 80vh;">
+        <h1 class="mb-4">欢迎使用 Octavia</h1>
+        <p class="mb-4 text-center">请选择服务器以获取更多信息。</p>
+    </div>
+
+    <footer>
+        <p class="text-center">Source Code on <a href="https://github.com/kj415j45/octavia">GitHub</a></p>
+        <p class="text-center">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
+    </footer>
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const regionMap = {};
+
+        async function getRegionList() {
+
+            const response = await fetch('/data/regions.json');
+            const regions = await response.json();
+            for (region of regions) {
+                regionMap[region.id] = region.name;
+            }
+        }
+        // Populate the dropdown menu with regions
+        async function populateRegionDropdown() {
+            await getRegionList(); // Ensure regionMap is populated
+            //clear existing options
+            const select = document.getElementById('regionSelect');
+            select.innerHTML = '';
+
+            for (const [id, name] of Object.entries(regionMap)) {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = name;
+                document.getElementById('regionSelect').appendChild(option);
+            }
+
+        }
+        populateRegionDropdown();
+
+
+        async function getStageInfo(region, id) {
+
+        }
+    </script>
+</body>
+
+</html>
