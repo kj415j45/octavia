@@ -36,11 +36,10 @@
         const regionMap = {};
 
         async function getRegionList() {
-
             const response = await fetch('/data/regions.json');
             const regions = await response.json();
-            for (region of regions) {
-                regionMap[region.id] = region.name;
+            for (const [id, info] of Object.entries(regions)) {
+                regionMap[id] = info.name;
             }
         }
         // Populate the dropdown menu with regions
@@ -50,16 +49,19 @@
             const select = document.getElementById('regionSelect');
             select.innerHTML = '';
 
-            for (const [id, name] of Object.entries(regionMap)) {
+            for (const [id, data] of Object.entries(regionMap)) {
                 const option = document.createElement('option');
                 option.value = id;
-                option.textContent = name;
+                option.textContent = data.name;
                 document.getElementById('regionSelect').appendChild(option);
             }
 
+            // select the first by default
+            if (select.options.length > 0) {
+                select.options[0].selected = true;
+            }
         }
         populateRegionDropdown();
-
 
         async function getStageInfo(region, id) {
 
