@@ -5,5 +5,5 @@ export async function getStageInfo(region: string, stageId: string) {
     if (!validRegions.includes(region as Regions)) {
         throw new Error(`Invalid region: ${region}. Valid regions are: ${validRegions.join(', ')}`);
     }
-	return octavia.getStageInfo(Regions[region as keyof typeof Regions], stageId);
+	return octavia.getStageInfo(region as Regions, stageId);
 }
