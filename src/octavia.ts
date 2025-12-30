@@ -1,4 +1,3 @@
-import { console } from '@cloudflare/workers-types/experimental';
 
 const defaultUA = 'Octavia/0.0.1 (kj415j45/octavia)';
 
