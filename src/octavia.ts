@@ -50,7 +50,8 @@ class Octavia {
 		};
 		const author = {
 			game: {
-				uid: developerInfo.developer.uid,
+				// TODO! expose this after disclosure is approved
+				// uid: developerInfo.developer.uid,
 				avatar: developerInfo.developer.game_avatar,
 				name: developerInfo.developer.game_nickname,
 			},
