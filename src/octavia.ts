@@ -1,4 +1,3 @@
-
 const defaultUA = 'Octavia/0.0.1 (kj415j45/octavia)';
 
 export enum Regions {
@@ -72,16 +71,24 @@ class Octavia {
 		const url = new URL(endpoint);
 		Object.keys(query).forEach((key) => url.searchParams.append(key, query[key]));
 
+		console.debug('Request URL:', url.toString());
+		console.debug('Request Method:', method);
+		console.debug('Request Payload:', payload);
+
 		const response = await fetch(url.toString(), {
 			method,
 			headers: {
 				'User-Agent': this.userAgent,
 				'Content-Type': 'application/json',
 			},
-			body: payload,
+			body: JSON.stringify(payload),
 		});
 
-		return response.json();
+		const jsonDoc = await response.json();
+
+		console.debug('Response JSON:', jsonDoc);
+
+		return jsonDoc;
 	}
 }
 
