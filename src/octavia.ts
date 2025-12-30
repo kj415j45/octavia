@@ -78,7 +78,7 @@ class Octavia {
 				'User-Agent': this.userAgent,
 				'Content-Type': 'application/json',
 			},
-			body: payload ? JSON.stringify(payload) : undefined,
+			body: payload,
 		});
 
 		return response.json();
