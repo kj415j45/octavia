@@ -1,3 +1,5 @@
+import { console } from '@cloudflare/workers-types/experimental';
+
 const defaultUA = 'Octavia/0.0.1 (kj415j45/octavia)';
 
 export enum Regions {
@@ -20,6 +22,7 @@ class Octavia {
 		};
 		const data = await this.request('POST', endpoint, {}, payload);
 		const resp_map = data.data.resp_map;
+		console.debug('Received stage info:', resp_map);
 		const levelDetail = resp_map.level_detail.data.level_detail_response.level_info;
 		const developerInfo = resp_map.developer_info.data.developer_news_response;
 		const level = {
