@@ -37,7 +37,7 @@ class Octavia {
 				hotScore: levelDetail.hot_score,
 				goodRate: levelDetail.good_rate,
 				cover: {
-					images: [levelDetail.cover_image.url, ...levelDetail.images.map((img: any) => img.url)],
+					images: [levelDetail.cover_img.url, ...levelDetail.images.map((img: any) => img.url)],
 					videoCover: levelDetail.video_info.video_cover,
 					video: levelDetail.video_info.video_url,
 				},
@@ -71,10 +71,6 @@ class Octavia {
 		const url = new URL(endpoint);
 		Object.keys(query).forEach((key) => url.searchParams.append(key, query[key]));
 
-		console.debug('Request URL:', url.toString());
-		console.debug('Request Method:', method);
-		console.debug('Request Payload:', payload);
-
 		const response = await fetch(url.toString(), {
 			method,
 			headers: {
@@ -85,8 +81,6 @@ class Octavia {
 		});
 
 		const jsonDoc = await response.json();
-
-		console.debug('Response JSON:', jsonDoc);
 
 		return jsonDoc;
 	}
