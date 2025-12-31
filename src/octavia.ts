@@ -24,10 +24,14 @@ class Octavia {
 		const levelDetail = resp_map.level_detail.data.level_detail_response.level_info;
 		const developerInfo = resp_map.developer_info.data.developer_news_response;
 		const level = {
+			region: region,
+			id: stageId,
 			meta: {
 				name: levelDetail.level_name,
 				description: levelDetail.desc,
 				intro: levelDetail.level_intro,
+				type: levelDetail.play_type,
+				category: levelDetail.play_cate === "LEVEL_CATE_LONG_TERM" ? "长线游玩" : "轻量趣味",
 				tags: levelDetail.play_tags,
 				players: {
 					min: levelDetail.limit_play_num_min,
