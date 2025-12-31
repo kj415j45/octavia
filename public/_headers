@@ -1,2 +1,2 @@
-/data
+/data/*
     Access-Control-Allow-Origin: *

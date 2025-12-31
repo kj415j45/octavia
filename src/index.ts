@@ -16,9 +16,13 @@ export default {
 					const data = await getStageInfo(region, stageId);
 					return JSONResponse(data);
 				}
+				default: {
+					return new Response('API endpoint not found', { status: 404 });
+				}
 			}
 		}
-		return new Response('API endpoint not found', { status: 404 });
+
+		return new Response('not found', { status: 404 });
 	},
 } satisfies ExportedHandler<Env>;
 
