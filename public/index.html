@@ -9,7 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
 
-<body>
+<body class="d-flex flex-column min-vh-100">
     <header>
         <nav class="navbar bg-body-tertiary">
             <div class="container-fluid">
@@ -21,22 +21,50 @@
         </nav>
     </header>
 
-    <div class="container d-flex flex-column justify-content-center align-items-center" style="height: 80vh;">
-        <h1 class="mb-4">欢迎使用 Octavia</h1>
-        <p class="mb-4 text-center">请选择服务器以获取更多信息。</p>
+    <div id="body" class="container d-flex flex-column justify-content-center align-items-center mt-auto mb-auto">
+        <div id="search" class="text-center mt-4 w-100">
+            <form onsubmit="event.preventDefault(); loadStages(document.getElementById('stageIdsInput').value);"
+                class="row g-2">
+                <div class="col-11">
+                    <input type="text" id="stageIdsInput" class="form-control"
+                        placeholder="输入奇域ID，多个ID用逗号分隔" />
+                </div>
+
+                <div class="col-1">
+                    <button type="submit" class="btn btn-primary">查询</button>
+                </div>
+
+            </form>
+        </div>
+        <div id="stages" class="mt-4">
+            <!-- Stage cards will be appended here -->
+
+        </div>
     </div>
 
     <footer>
-        <p class="text-center">Source Code on <a href="https://github.com/kj415j45/octavia">GitHub</a></p>
+        <p class="text-center">Source Code will be available Soon™️ on <a
+                href="https://github.com/kj415j45/octavia">GitHub</a>
+        </p>
         <p class="text-center">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
     </footer>
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        const currentUrl = new URL(window.location.href);
+        const isLocalDebug = currentUrl.host.startsWith('127.0.0.1') || currentUrl.host.startsWith('localhost');
+        const baseUrl = isLocalDebug ? `https://octavia.kj415j45.space` : "";
         const regionMap = {};
+        var region = 'cn_gf01';
+
+        const regionSelect = document.getElementById('regionSelect');
+        regionSelect.addEventListener('change', (event) => {
+            region = event.target.value;
+            console.log(`Selected region: ${region}`);
+        });
 
         async function getRegionMap() {
-            const response = await fetch('/data/regions.json');
+            const response = await fetch(`${baseUrl}/data/regions.json`);
             const regions = await response.json();
             for (const [id, info] of Object.entries(regions)) {
                 regionMap[id] = info;
@@ -59,13 +87,195 @@
             // select the first by default
             if (select.options.length > 0) {
                 select.options[0].selected = true;
+                region = select.options[0].value;
             }
         }
         populateRegionDropdown();
 
         async function getStageInfo(region, id) {
+            const response = await fetch(`${baseUrl}/api/stage?region=${region}&id=${id}`);
+            return await response.json();
+        }
+
+        function makeStageCard(stage) {
+            const level = stage.level;
+            const meta = level.meta;
+            const author = stage.author;
+
+            // Create card container
+            const card = document.createElement('div');
+            // Ensure card body stretches to align footer at the bottom
+            card.className = 'card h-100';
+
+            // Add preview image
+            const img = document.createElement('img');
+            img.src = meta.cover.images[0];
+            img.className = 'card-img-top';
+            img.alt = meta.name;
+            card.appendChild(img);
+
+            // Create card body
+            const cardBody = document.createElement('div');
+            cardBody.className = 'card-body d-flex flex-column';
+
+            // Add name and hot score/good rate
+            const titleRow = document.createElement('div');
+            titleRow.className = 'd-flex justify-content-between align-items-center';
+
+            const name = document.createElement('h5');
+            name.className = 'card-title';
+            name.textContent = meta.name;
+            titleRow.appendChild(name);
+
+            const stats = document.createElement('small');
+            stats.className = 'text-muted';
+            stats.textContent = `${meta.hotScore} | ${meta.goodRate}`;
+            titleRow.appendChild(stats);
+
+            cardBody.appendChild(titleRow);
+
+            // Add description
+            const description = document.createElement('p');
+            description.className = 'card-text';
+            description.textContent = meta.description;
+            description.style.overflow = 'hidden';
+            description.style.display = '-webkit-box';
+            description.style.webkitLineClamp = '3';
+            description.style.webkitBoxOrient = 'vertical';
+
+            cardBody.appendChild(description);
+
+            // Add tags as badges (split into two sections)
+            const tagsContainer = document.createElement('div');
+            tagsContainer.className = 'd-flex justify-content-between my-2';
+
+            const leftTags = document.createElement('div');
+            const playerNumTag = document.createElement('span');
+            playerNumTag.className = 'badge bg-info me-1';
+            playerNumTag.textContent = `[${meta.players.min}, ${meta.players.max}] ${meta.players.str}人`;
+            [meta.type, meta.category].forEach(tag => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-secondary me-1';
+                badge.textContent = tag;
+                leftTags.appendChild(badge);
+            });
+            leftTags.appendChild(document.createElement('br')); // Spacer
+            leftTags.appendChild(playerNumTag);
+
+
+            const rightTags = document.createElement('div');
+            meta.tags.forEach(tag => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary me-1';
+                badge.textContent = tag;
+                rightTags.appendChild(badge);
+            });
+
+            tagsContainer.appendChild(leftTags);
+            tagsContainer.appendChild(rightTags);
+            cardBody.appendChild(tagsContainer);
+
+            // Add author and level ID section
+            const footer = document.createElement('div');
+            // Adjust footer to stick to the bottom
+            footer.className = 'card-footer mt-auto d-flex justify-content-between align-items-center';
+
+            // Author info
+            const authorInfo = document.createElement('div');
+            authorInfo.className = 'd-flex align-items-center';
+
+            const avatar = document.createElement('img');
+            avatar.src = author.game.avatar;
+            avatar.alt = author.game.name;
+            avatar.className = 'rounded-circle me-2';
+            avatar.style.width = '40px';
+            avatar.style.height = '40px';
+
+            const authorName = document.createElement('span');
+            authorName.textContent = author.game.name;
+
+            authorInfo.appendChild(avatar);
+            authorInfo.appendChild(authorName);
+
+            // Level ID and copy button
+            const levelInfo = document.createElement('div');
+            levelInfo.className = 'd-flex align-items-center';
+
+            const levelId = document.createElement('span');
+            levelId.className = 'me-2';
+            levelId.textContent = `ID: ${level.id}`;
+
+            const copyButton = document.createElement('button');
+            copyButton.className = 'btn btn-sm btn-outline-secondary';
+            copyButton.textContent = '复制';
+            copyButton.addEventListener('click', () => {
+                navigator.clipboard.writeText(level.id);
+                copyButton.textContent = '已复制';
+                copyButton.classList.remove('btn-outline-secondary');
+                copyButton.classList.add('btn-success');
+                setTimeout(() => {
+                    copyButton.textContent = '复制';
+                    copyButton.classList.remove('btn-success');
+                    copyButton.classList.add('btn-outline-secondary');
+                }, 2000); // Revert after 2 seconds
+            });
+
+            levelInfo.appendChild(levelId);
+            levelInfo.appendChild(copyButton);
+
+            footer.appendChild(authorInfo);
+            footer.appendChild(levelInfo);
+            cardBody.appendChild(footer);
+
+            card.appendChild(cardBody);
+
+            return card;
+        }
+
+        async function loadStages(stageIdsString) {
+            const pattern = /\d+/g;
+            const matches = stageIdsString.match(pattern);
+            stageIds = matches || [];
+
+            const stageIdInput = document.getElementById('stageIdsInput');
+            const stages = (await Promise.all(stageIds.map(id => getStageInfo(region, id).catch(err => null)))).filter(stage => stage && stage.level);
+            if (stages.length === 0) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger';
+                errorDiv.textContent = '请输入至少一个有效的奇域ID！';
+                const stagesDiv = document.getElementById('stages');
+                stagesDiv.innerHTML = '';
+                stagesDiv.appendChild(errorDiv);
+                return;
+            }
+            const levelIds = stages.map(stage => stage.level.id);
+            stageIdInput.value = levelIds.join(', ');
+            window.history.replaceState(null, '', `?stages=${levelIds.join(',')}`);
+
+            const stageCards = stages.map(stage => makeStageCard(stage));
+
+            const stagesDiv = document.getElementById('stages');
+            stagesDiv.innerHTML = '';
+            const rowSize = 3;
+            for (let i = 0; i < stageCards.length; i += rowSize) {
+                const row = document.createElement('div');
+                row.className = 'row mb-4';
+                for (let j = i; j < i + rowSize && j < stageCards.length; j++) {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-4 d-flex justify-content-center mb-4';
+                    col.appendChild(stageCards[j]);
+                    row.appendChild(col);
+                }
+                stagesDiv.appendChild(row);
+            }
 
         }
+        const query = new URLSearchParams(window.location.search);
+        const stageIdsParam = query.get('stages');
+        if (stageIdsParam) {
+            loadStages(stageIdsParam);
+        }
+
     </script>
 </body>
 
