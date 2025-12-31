@@ -3,6 +3,9 @@ import { getStageInfo } from './apis/stage_info';
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
+		if(request.method === 'OPTIONS'){
+			return new Response(null, { headers: corsHeaders });
+		}
 		const url = new URL(request.url);
 		if (url.pathname.startsWith('/api/') && request.method === 'GET') {
 			const endpoint = url.pathname.replace('/api/', '');
