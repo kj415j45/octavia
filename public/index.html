@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Octavia - 千星奇域工具</title>
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="./lib/bootstrap.min.css" rel="stylesheet" />
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -49,7 +49,7 @@
         <p class="text-center">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
     </footer>
     <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./lib/bootstrap.bundle.min.js"></script>
     <script>
         const currentUrl = new URL(window.location.href);
         const isLocalDebug = currentUrl.host.startsWith('127.0.0.1') || currentUrl.host.startsWith('localhost');
