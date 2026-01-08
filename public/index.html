@@ -13,7 +13,7 @@
     <header>
         <nav class="navbar bg-body-tertiary">
             <div class="container-fluid">
-                <span class="navbar-brand mb-0 h1">Octavia - 千星奇域工具</span>
+                <span class="navbar-brand mb-0 h1">欧科塔维亚</span>
                 <select class="form-select w-auto" id="regionSelect">
                     <option selected disabled>选择服务器</option>
                 </select>
@@ -26,8 +26,7 @@
             <form onsubmit="event.preventDefault(); loadStages(document.getElementById('stageIdsInput').value);"
                 class="row g-2">
                 <div class="col-8 col-md-10">
-                    <input type="text" id="stageIdsInput" class="form-control"
-                        placeholder="输入奇域ID，支持自动识别多个ID" />
+                    <input type="text" id="stageIdsInput" class="form-control" placeholder="输入奇域ID，支持自动识别" />
                 </div>
 
                 <div class="col-4 col-md-2">
@@ -235,24 +234,45 @@
 
             cardBody.appendChild(titleRow);
 
+            const textContainer = document.createElement('ul');
+            textContainer.className = 'list-group';
+            const textContainerHeight = '6em';
+
+            // Add intro
+            const intro = document.createElement('li');
+            intro.className = 'list-group-item';
+            intro.innerHTML = meta.intro.replace(/\n/g, '<br>');
+            intro.style.height = textContainerHeight; // Set fixed height
+            intro.style.overflowY = 'auto'; // Enable vertical scrolling
+            textContainer.appendChild(intro);
+
             // Add description
-            const description = document.createElement('p');
-            description.className = 'card-text';
-            description.textContent = meta.description;
-            description.style.overflow = 'hidden';
-            description.style.display = '-webkit-box';
-            description.style.webkitLineClamp = '3';
-            description.style.webkitBoxOrient = 'vertical';
+            const description = document.createElement('li');
+            description.className = 'list-group-item';
+            description.innerHTML = meta.description.replace(/\n/g, '<br>');
+            description.style.height = textContainerHeight; // Set fixed height
+            description.style.overflowY = 'auto'; // Enable vertical scrolling
+            textContainer.appendChild(description);
 
-            cardBody.appendChild(description);
+            cardBody.appendChild(textContainer);
 
-            // Add tags as badges (split into two sections)
+            // Add tags as badges
             const tagsContainer = document.createElement('div');
-            tagsContainer.className = 'd-flex justify-content-between my-2';
+            tagsContainer.className = 'd-flex justify-content-between my-2 row';
 
             const leftTags = document.createElement('div');
+            leftTags.className = 'col-6';
             const playerNumTag = document.createElement('span');
-            playerNumTag.className = 'badge bg-info me-1';
+            playerNumTag.className = 'badge me-1';
+            if (meta.players.str.startsWith('1')) {
+                if (meta.players.str.startsWith('1-')) {
+                    playerNumTag.classList.add('bg-info');
+                } else {
+                    playerNumTag.classList.add('bg-success');
+                }
+            } else {
+                playerNumTag.classList.add('bg-warning');
+            }
             playerNumTag.textContent = `[${meta.players.min}, ${meta.players.max}] ${meta.players.str}人`;
             [meta.type, meta.category].forEach(tag => {
                 const badge = document.createElement('span');
@@ -265,6 +285,7 @@
 
 
             const rightTags = document.createElement('div');
+            rightTags.className = 'col-6 text-end';
             meta.tags.forEach(tag => {
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary me-1';
@@ -304,7 +325,7 @@
 
             const levelId = document.createElement('span');
             levelId.className = 'me-2';
-            levelId.textContent = `ID: ${level.id}`;
+            levelId.textContent = `${level.id}`;
 
             const copyButton = document.createElement('button');
             copyButton.className = 'btn btn-sm btn-outline-secondary';
