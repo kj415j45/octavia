@@ -1,0 +1,13 @@
+@font-face {
+    font-family: 'HY WenHei';
+    src: 
+        local('HY WenHei'),
+        local('HYWenHei'),
+        local('HY WenHei 85W Heavy'),
+        url('./fonts/hy-wenhei.woff') format('woff'),
+        url('./fonts/hy-wenhei.ttf') format('truetype');
+}
+
+body {
+    font-family: 'HY WenHei', sans-serif;
+}

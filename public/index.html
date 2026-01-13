@@ -5,8 +5,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Octavia - 千星奇域工具</title>
+    <meta name="name" itemprop="name" content="Octavia - 千星奇域工具" />
+    <meta name="description" itemprop="description" content="Octavia，千星奇域工具，提供奇域查询功能。" />
+    <meta name="keywords" content="Octavia, 欧科塔维亚, 千星奇域, 原神, Genshin, Genshin Impact, Miliastra Wonderland, miHoYo, 米哈游" />
+    <meta itemprop="image" content="./lib/icon.png" />
+    <link rel="icon" href="./favicon.ico" />
+
     <!-- Bootstrap CSS -->
-    <link href="./lib/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="./lib/bootstrap.min.css" />
+
+    <link rel="stylesheet" href="./lib/font.css" />
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -236,13 +244,12 @@
 
             const textContainer = document.createElement('ul');
             textContainer.className = 'list-group';
-            const textContainerHeight = '6em';
 
             // Add intro
             const intro = document.createElement('li');
             intro.className = 'list-group-item';
             intro.innerHTML = meta.intro.replace(/\n/g, '<br>');
-            intro.style.height = textContainerHeight; // Set fixed height
+            intro.style.height = '6em'; // Set fixed height
             intro.style.overflowY = 'auto'; // Enable vertical scrolling
             textContainer.appendChild(intro);
 
@@ -250,7 +257,7 @@
             const description = document.createElement('li');
             description.className = 'list-group-item';
             description.innerHTML = meta.description.replace(/\n/g, '<br>');
-            description.style.height = textContainerHeight; // Set fixed height
+            description.style.height = '8em'; // Set fixed height
             description.style.overflowY = 'auto'; // Enable vertical scrolling
             textContainer.appendChild(description);
 
