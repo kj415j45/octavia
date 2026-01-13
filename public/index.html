@@ -102,7 +102,6 @@
                 region = regionFromUrl;
             }
         }
-        populateRegionDropdown();
 
         async function getStageInfo(region, id) {
             const response = await fetch(`${baseUrl}/api/stage?region=${region}&id=${id}`);
@@ -403,11 +402,15 @@
             stagesDiv.appendChild(masonryContainer);
 
         }
-        const query = new URLSearchParams(window.location.search);
-        const stageIdsParam = query.get('stages');
-        if (stageIdsParam) {
-            loadStages(stageIdsParam);
-        }
+        
+        populateRegionDropdown().then(() => {
+            // After populating the dropdown, check URL params
+            const query = new URLSearchParams(window.location.search);
+            const stageIdsParam = query.get('stages');
+            if (stageIdsParam) {
+                loadStages(stageIdsParam);
+            }
+        });
 
     </script>
 </body>
