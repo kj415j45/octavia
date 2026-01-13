@@ -2,6 +2,7 @@ const defaultUA = 'Octavia/0.0.1 (kj415j45/octavia)';
 
 export enum Regions {
 	CN_GF = 'cn_gf01',
+	CN_BILI = 'cn_qd01',
 }
 
 class Octavia {
