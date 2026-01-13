@@ -96,6 +96,11 @@
                 select.options[0].selected = true;
                 region = select.options[0].value;
             }
+            const regionFromUrl = new URLSearchParams(window.location.search).get('region');
+            if (regionFromUrl && regionMap[regionFromUrl]) {
+                select.value = regionFromUrl;
+                region = regionFromUrl;
+            }
         }
         populateRegionDropdown();
 
@@ -381,7 +386,7 @@
             }
             const levelIds = stages.map(stage => stage.level.id);
             stageIdInput.value = levelIds.join(', ');
-            window.history.replaceState(null, '', `?stages=${levelIds.join(',')}`);
+            window.history.replaceState(null, '', `?stages=${levelIds.join(',')}&region=${region}`);
 
             const stageCards = stages.map(stage => makeStageCard(stage));
 
