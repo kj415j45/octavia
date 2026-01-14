@@ -55,17 +55,14 @@ class Octavia {
 		};
 		const author = {
 			game: {
-				// TODO! expose this after disclosure is approved
-				// uid: developerInfo.developer.uid,
 				avatar: developerInfo.developer.game_avatar,
 				name: developerInfo.developer.game_nickname,
 			},
-			// TODO! expose this after disclosure is approved
-			// mys: {
-			//     aid: developerInfo.developer.aid,
-			//     avatar: developerInfo.developer.mys_user_info.avatar_url,
-			//     name: developerInfo.developer.mys_user_info.nickname,
-			// }
+			mys: {
+			    aid: developerInfo.developer.aid,
+			    avatar: developerInfo.developer.mys_user_info.avatar_url,
+			    name: developerInfo.developer.mys_user_info.nickname,
+			}
 		};
 		return {
 			author,
