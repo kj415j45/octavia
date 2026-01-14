@@ -7,7 +7,8 @@
     <title>Octavia - 千星奇域工具</title>
     <meta name="name" itemprop="name" content="Octavia - 千星奇域工具" />
     <meta name="description" itemprop="description" content="Octavia，千星奇域工具，提供奇域查询功能。" />
-    <meta name="keywords" content="Octavia, 欧科塔维亚, 千星奇域, 原神, Genshin, Genshin Impact, Miliastra Wonderland, miHoYo, 米哈游" />
+    <meta name="keywords"
+        content="Octavia, 欧科塔维亚, 千星奇域, 原神, Genshin, Genshin Impact, Miliastra Wonderland, miHoYo, 米哈游" />
     <meta itemprop="image" content="./lib/icon.png" />
     <link rel="icon" href="./favicon.ico" />
 
@@ -50,9 +51,7 @@
     </div>
 
     <footer class="mt-4">
-        <p class="text-center">Source Code will be available Soon™️ on <a
-                href="https://github.com/kj415j45/octavia">GitHub</a>
-        </p>
+        <p class="text-center">Source Code is available on <a href="https://github.com/kj415j45/octavia">GitHub</a></p>
         <p class="text-center">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
     </footer>
     <!-- Bootstrap JS Bundle -->
@@ -410,9 +409,8 @@
                 masonryContainer.appendChild(col);
             });
             stagesDiv.appendChild(masonryContainer);
-
         }
-        
+
         populateRegionDropdown().then(() => {
             // After populating the dropdown, check URL params
             const query = new URLSearchParams(window.location.search);
