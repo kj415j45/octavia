@@ -317,6 +317,14 @@
             const authorInfo = document.createElement('div');
             authorInfo.className = 'd-flex align-items-center';
 
+            const authorAid = author.mys.aid;
+
+            const authorLink = document.createElement('a');
+            authorLink.href = `https://www.miyoushe.com/ys/accountCenter/postList?id=${authorAid}`;
+            authorLink.target = '_blank';
+            authorLink.rel = 'noopener';
+            authorLink.className = 'd-flex align-items-center text-decoration-none';
+
             const avatar = document.createElement('img');
             avatar.src = author.game.avatar;
             avatar.alt = author.game.name;
@@ -327,8 +335,10 @@
             const authorName = document.createElement('span');
             authorName.textContent = author.game.name;
 
-            authorInfo.appendChild(avatar);
-            authorInfo.appendChild(authorName);
+            authorLink.appendChild(avatar);
+            authorLink.appendChild(authorName);
+
+            authorInfo.appendChild(authorLink);
 
             // Level ID and copy button
             const levelInfo = document.createElement('div');
