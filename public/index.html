@@ -421,9 +421,6 @@
                 errorDiv.textContent = '请输入至少一个有效的奇域ID！';
                 stagesDiv.appendChild(errorDiv);
             }
-            const levelIds = stages.map(stage => stage.level.id);
-            stageIdInput.value = levelIds.join(', ');
-            window.history.replaceState(null, '', `?stages=${levelIds.join(',')}&region=${region}`);
         }
 
         populateRegionDropdown().then(() => {
