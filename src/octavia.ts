@@ -1,4 +1,4 @@
-const defaultUA = 'Octavia/0.0.1 (kj415j45/octavia)';
+const defaultUA = 'Octavia/1.0.0 (kj415j45/octavia)';
 
 export enum Regions {
 	CN_GF = 'cn_gf01',
@@ -32,7 +32,7 @@ class Octavia {
 				description: levelDetail.desc,
 				intro: levelDetail.level_intro,
 				type: levelDetail.play_type,
-				category: levelDetail.play_cate === "LEVEL_CATE_LONG_TERM" ? "长线游玩" : "轻量趣味",
+				category: levelDetail.play_cate === 'LEVEL_CATE_LONG_TERM' ? '长线游玩' : '轻量趣味',
 				tags: levelDetail.play_tags,
 				players: {
 					min: levelDetail.limit_play_num_min,
@@ -59,10 +59,10 @@ class Octavia {
 				name: developerInfo.developer.game_nickname,
 			},
 			mys: {
-			    aid: developerInfo.developer.aid,
-			    avatar: developerInfo.developer.mys_user_info.avatar_url,
-			    name: developerInfo.developer.mys_user_info.nickname,
-			}
+				aid: developerInfo.developer.aid,
+				avatar: developerInfo.developer.mys_user_info.avatar_url,
+				name: developerInfo.developer.mys_user_info.nickname,
+			},
 		};
 		return {
 			author,
