@@ -252,7 +252,7 @@
             const intro = document.createElement('li');
             intro.className = 'list-group-item';
             intro.innerHTML = meta.intro.replace(/\n/g, '<br>');
-            intro.style.height = '6em'; // Set fixed height
+            intro.style.height = '5em'; // Set fixed height
             intro.style.overflowY = 'auto'; // Enable vertical scrolling
             textContainer.appendChild(intro);
 
@@ -260,7 +260,7 @@
             const description = document.createElement('li');
             description.className = 'list-group-item';
             description.innerHTML = meta.description.replace(/\n/g, '<br>');
-            description.style.height = '8em'; // Set fixed height
+            description.style.height = '7em'; // Set fixed height
             description.style.overflowY = 'auto'; // Enable vertical scrolling
             textContainer.appendChild(description);
 
@@ -377,38 +377,53 @@
         async function loadStages(stageIdsString) {
             const pattern = /\d+/g;
             const matches = stageIdsString.match(pattern);
-            stageIds = matches || [];
+            let stageIds = matches || [];
 
             stageIds = [...new Set(stageIds)];
 
             const stageIdInput = document.getElementById('stageIdsInput');
-            const stages = (await Promise.all(stageIds.map(id => getStageInfo(region, id).catch(err => null)))).filter(stage => stage && stage.level);
-            if (stages.length === 0) {
+            const stagesDiv = document.getElementById('stages');
+            stagesDiv.innerHTML = ''; // Clear previous content
+
+            const validStageIds = []
+
+            for (const id of stageIds) {
+                try {
+                    const stage = await getStageInfo(region, id);
+                    if (stage && stage.level) {
+                        const levelId = stage.level.id;
+                        validStageIds.push(levelId);
+
+                        const stageCard = makeStageCard(stage);
+                        const col = document.createElement('div');
+                        col.className = 'col d-flex justify-content-center';
+                        col.appendChild(stageCard);
+
+                        let masonryContainer = stagesDiv.querySelector('.row');
+                        if (!masonryContainer) {
+                            masonryContainer = document.createElement('div');
+                            masonryContainer.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4';
+                            stagesDiv.appendChild(masonryContainer);
+                        }
+                        masonryContainer.appendChild(col);
+                    }
+                } catch (err) {
+                    console.error(`Failed to load stage with ID ${id}:`, err);
+                }
+            }
+
+            stageIdInput.value = validStageIds.join(', ');
+            window.history.replaceState(null, '', `?stages=${stageIdInput.value.replace(/ /g, '')}&region=${region}`);
+
+            if (!stagesDiv.querySelector('.row')) {
                 const errorDiv = document.createElement('div');
                 errorDiv.className = 'alert alert-danger';
                 errorDiv.textContent = '请输入至少一个有效的奇域ID！';
-                const stagesDiv = document.getElementById('stages');
-                stagesDiv.innerHTML = '';
                 stagesDiv.appendChild(errorDiv);
-                return;
             }
             const levelIds = stages.map(stage => stage.level.id);
             stageIdInput.value = levelIds.join(', ');
             window.history.replaceState(null, '', `?stages=${levelIds.join(',')}&region=${region}`);
-
-            const stageCards = stages.map(stage => makeStageCard(stage));
-
-            const stagesDiv = document.getElementById('stages');
-            stagesDiv.innerHTML = '';
-            const masonryContainer = document.createElement('div');
-            masonryContainer.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4';
-            stageCards.forEach(card => {
-                const col = document.createElement('div');
-                col.className = 'col d-flex justify-content-center';
-                col.appendChild(card);
-                masonryContainer.appendChild(col);
-            });
-            stagesDiv.appendChild(masonryContainer);
         }
 
         populateRegionDropdown().then(() => {
