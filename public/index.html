@@ -108,6 +108,7 @@
         }
 
         function makeStageCard(stage) {
+            pushStage(stage);
             const level = stage.level;
             const meta = level.meta;
             const author = stage.author;
@@ -432,6 +433,19 @@
             }
         });
 
+    </script>
+
+    <!-- Dev Tools -->
+    <script src="lib/lodash.min.js" defer></script>
+    <script>
+        var $Stages = [];
+        function pushStage(stage) {
+            if (!$Stages.find(s => s.level.id === stage.level.id)) {
+                $Stages.push(stage);
+            }
+        }
+
+        console.log('%c Welcome to Octavia!\n%c Loaded stages can be found in $Stages\n%c Lodash 4.17.21 is globally available as _', 'background: #222; color: #bada55; font-size: 16px;', 'background: #222; color: #bada55; font-size: 12px;', 'background: #222; color: #bada55; font-size: 12px;');
     </script>
 </body>
 
