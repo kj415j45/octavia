@@ -60,9 +60,7 @@
     <!-- Bootstrap JS Bundle -->
     <script src="./lib/bootstrap.bundle.min.js"></script>
     <script>
-        const currentUrl = new URL(window.location.href);
-        const isLocalDebug = currentUrl.host.startsWith('127.0.0.1') || currentUrl.host.startsWith('localhost');
-        const baseUrl = isLocalDebug ? `https://octavia.kj415j45.space` : "";
+        const baseUrl = "";
         const regionMap = {};
         var region = 'cn_gf01';
 
@@ -420,8 +418,13 @@
                 }
             }
 
-            stageIdInput.value = validStageIds.join(', ');
-            window.history.replaceState(null, '', `?stages=${stageIdInput.value.replace(/ /g, '')}&region=${region}`);
+            const csText = validStageIds.join(', ');
+            stageIdInput.value = csText;
+            window.history.replaceState(null, '', `?stages=${csText.replace(/ /g, '')}&region=${region}`);
+            const sha256Hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(csText));
+            const hashArray = Array.from(new Uint8Array(sha256Hash));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            console.log(`SHA-256 Hash of stage IDs: ${hashHex}`);
 
             const hintsDiv = document.getElementById('hints');
             hintsDiv.innerHTML = '';
@@ -447,7 +450,28 @@
                     }, 2000);
                 });
                 hintsDiv.appendChild(copyExcelButton);
+
+                let bonusMessage = await getBounsMessage(hashHex);
+                if (bonusMessage) {
+                    // detect url
+                    if(bonusMessage.includes('http://') || bonusMessage.includes('https://')) {
+                        const urlPattern = /(https?:\/\/[^\s]+)/g;
+                        bonusMessage = bonusMessage.replace(urlPattern, function(url) {
+                            return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+                        });
+                    }
+
+                    const bonusDiv = document.createElement('div');
+                    bonusDiv.className = 'alert alert-info';
+                    bonusDiv.innerHTML = bonusMessage;
+                    hintsDiv.appendChild(bonusDiv);
+                }
             }
+        }
+
+        async function getBounsMessage(hash) {
+            const response = await fetch(`${baseUrl}/api/bonus?hash=${hash}`);
+            return await response.text();
         }
 
         populateRegionDropdown().then(() => {

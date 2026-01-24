@@ -1,4 +1,3 @@
-import { Env } from '../worker-configuration';
 import { getStageInfo } from './apis/stage_info';
 
 export default {
@@ -19,6 +18,11 @@ export default {
 					const data = await getStageInfo(region, stageId);
 					return JSONResponse(data);
 				}
+				case 'bonus': {
+					const hash = url.searchParams.get('hash') || '';
+					const data = await env.kv.get(hash);
+					return TextResponse(data || '');
+				}
 				default: {
 					return new Response('API endpoint not found', { status: 404 });
 				}
@@ -35,6 +39,17 @@ const corsHeaders = {
 	'Access-Control-Allow-Headers': 'Content-Type',
 	'Access-Control-Max-Age': '86400',
 };
+
+function TextResponse(text: string, init: ResponseInit = {}): Response {
+	return new Response(text, {
+		...init,
+		headers: {
+			'Content-Type': 'text/plain',
+			...corsHeaders,
+			...(init.headers || {}),
+		},
+	});
+}
 
 function JSONResponse(data: any, init: ResponseInit = {}): Response {
 	return new Response(JSON.stringify(data), {
