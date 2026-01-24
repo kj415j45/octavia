@@ -44,7 +44,8 @@
 
             </form>
         </div>
-        <div id="hints" class="row my-2">
+        <div id="hints" class="row my-2 text-center justify-content-center col-10 col-md-8 col-lg-6">
+            <!-- Hints and messages will be appended here -->
 
         </div>
         <div id="stages" class="my-2 w-100">
@@ -408,7 +409,7 @@
                         let masonryContainer = stagesDiv.querySelector('.row');
                         if (!masonryContainer) {
                             masonryContainer = document.createElement('div');
-                            masonryContainer.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4';
+                            masonryContainer.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4';
                             stagesDiv.appendChild(masonryContainer);
                         }
                         masonryContainer.appendChild(col);
@@ -437,7 +438,7 @@
                 // add copy as excel button before the stages
                 const copyExcelButton = document.createElement('button');
                 copyExcelButton.id = 'copyExcelButton';
-                copyExcelButton.className = 'btn btn-success mb-3 justify-content-center';
+                copyExcelButton.className = 'btn btn-success mb-3 justify-content-center col-md-6 col-lg-4 d-none d-md-block';
                 copyExcelButton.textContent = '复制为 Excel 格式';
                 const copyText = $Stages.map(e => 
                     `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
