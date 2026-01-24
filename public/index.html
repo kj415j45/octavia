@@ -31,7 +31,7 @@
     </header>
 
     <div id="body" class="container-fluid d-flex flex-column justify-content-center align-items-center mt-auto mb-auto">
-        <div id="search" class="text-center mt-4 col-10 col-md-8 col-lg-6">
+        <div id="search" class="text-center my-4 col-10 col-md-8 col-lg-6">
             <form onsubmit="event.preventDefault(); loadStages(document.getElementById('stageIdsInput').value);"
                 class="row g-2">
                 <div class="col-8 col-md-10">
@@ -44,7 +44,10 @@
 
             </form>
         </div>
-        <div id="stages" class="my-4 w-100">
+        <div id="hints" class="row my-2">
+
+        </div>
+        <div id="stages" class="my-2 w-100">
             <!-- Stage cards will be appended here -->
 
         </div>
@@ -376,6 +379,10 @@
         }
 
         async function loadStages(stageIdsString) {
+            // Clean up
+            $Stages = [];
+            document.getElementById('copyExcelButton')?.remove();
+
             const pattern = /\d+/g;
             const matches = stageIdsString.match(pattern);
             let stageIds = matches || [];
@@ -416,11 +423,30 @@
             stageIdInput.value = validStageIds.join(', ');
             window.history.replaceState(null, '', `?stages=${stageIdInput.value.replace(/ /g, '')}&region=${region}`);
 
+            const hintsDiv = document.getElementById('hints');
+            hintsDiv.innerHTML = '';
             if (!stagesDiv.querySelector('.row')) {
                 const errorDiv = document.createElement('div');
                 errorDiv.className = 'alert alert-danger';
                 errorDiv.textContent = '请输入至少一个有效的奇域ID！';
-                stagesDiv.appendChild(errorDiv);
+                hintsDiv.appendChild(errorDiv);
+            } else {
+                // add copy as excel button before the stages
+                const copyExcelButton = document.createElement('button');
+                copyExcelButton.id = 'copyExcelButton';
+                copyExcelButton.className = 'btn btn-success mb-3 justify-content-center';
+                copyExcelButton.textContent = '复制为 Excel 格式';
+                const copyText = $Stages.map(e => 
+                    `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
+                ).join('\n');
+                copyExcelButton.addEventListener('click', () => {
+                    navigator.clipboard.writeText(copyText);
+                    copyExcelButton.textContent = '已复制';
+                    setTimeout(() => {
+                        copyExcelButton.textContent = '复制为 Excel 格式';
+                    }, 2000);
+                });
+                hintsDiv.appendChild(copyExcelButton);
             }
         }
 
