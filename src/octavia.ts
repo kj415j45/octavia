@@ -53,6 +53,7 @@ class Octavia {
 				changelog: developerInfo.update_list,
 			},
 		};
+		const mysInfo = developerInfo.developer.mys_user_info;
 		const author = {
 			game: {
 				avatar: developerInfo.developer.game_avatar,
@@ -60,8 +61,8 @@ class Octavia {
 			},
 			mys: {
 				aid: developerInfo.developer.aid,
-				avatar: developerInfo.developer.mys_user_info.avatar_url,
-				name: developerInfo.developer.mys_user_info.nickname,
+				avatar: mysInfo?.avatar_url,
+				name: mysInfo?.nickname,
 			},
 		};
 		return {

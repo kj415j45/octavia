@@ -326,16 +326,20 @@
             authorLink.target = '_blank';
             authorLink.rel = 'noopener';
             authorLink.className = 'd-flex align-items-center text-decoration-none';
+            if(authorAid == "0") {
+                authorLink.href = '#';
+                authorLink.style.pointerEvents = 'none';
+            }
 
             const avatar = document.createElement('img');
-            avatar.src = author.game.avatar;
-            avatar.alt = author.game.name;
+            avatar.src = author.game.avatar ?? author.mys.avatar ?? "";
+            avatar.alt = author.game.name ?? author.mys.name ?? "";
             avatar.className = 'rounded-circle me-2';
             avatar.style.width = '40px';
             avatar.style.height = '40px';
 
             const authorName = document.createElement('span');
-            authorName.textContent = author.game.name;
+            authorName.textContent = author.game.name ?? author.mys.name ?? "";
 
             authorLink.appendChild(avatar);
             authorLink.appendChild(authorName);
