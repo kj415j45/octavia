@@ -287,15 +287,24 @@
                 playerNumTag.classList.add('bg-warning');
             }
             playerNumTag.textContent = `[${meta.players.min}, ${meta.players.max}] ${meta.players.str}人`;
-            [meta.type, meta.category].forEach(tag => {
-                const badge = document.createElement('span');
-                badge.className = 'badge bg-secondary me-1';
-                badge.textContent = tag;
-                leftTags.appendChild(badge);
-            });
+            const typeBadge = document.createElement('span');
+            typeBadge.className = 'badge bg-secondary me-1';
+            typeBadge.textContent = meta.type;
+            leftTags.appendChild(typeBadge);
+            const categoryBadge = document.createElement('span');
+            categoryBadge.className = 'badge me-1';
+            if(meta.category == '轻量趣味'){
+                categoryBadge.classList.add('bg-success');
+            } else if(meta.category == '长线挑战'){
+                categoryBadge.classList.add('bg-warning');
+            } else {
+                categoryBadge.classList.add('bg-secondary');
+            }
+            categoryBadge.textContent = meta.category;
+            leftTags.appendChild(categoryBadge);
+
             leftTags.appendChild(document.createElement('br')); // Spacer
             leftTags.appendChild(playerNumTag);
-
 
             const rightTags = document.createElement('div');
             rightTags.className = 'col-6 text-end';

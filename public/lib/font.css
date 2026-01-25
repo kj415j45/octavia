@@ -11,3 +11,7 @@
 body {
     font-family: 'HY WenHei', sans-serif;
 }
+
+.badge {
+    font-family: var(--bs-body-font-family);
+}
