@@ -1,9 +1,22 @@
 {
+	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "octavia",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-12-29",
 	"observability": {
 		"enabled": true,
+	},
+	"workers_dev": false,
+	"preview_urls": false,
+	"routes": [
+		{
+			"pattern": "octavia.kj415j45.space",
+			"custom_domain": true,
+		},
+	],
+	"placement": {
+		"mode": "smart",
+		"host": "bbs-api.miyoushe.com",
 	},
 	"assets": {
 		"directory": "public",
