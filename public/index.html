@@ -61,7 +61,7 @@
     <!-- Bootstrap JS Bundle -->
     <script src="./lib/bootstrap.bundle.min.js"></script>
     <script>
-        const baseUrl = "";
+        const baseUrl = "https://octavia.kj415j45.space";
         const regionMap = {};
         var region = 'cn_gf01';
 
@@ -359,8 +359,11 @@
             const levelInfo = document.createElement('div');
             levelInfo.className = 'd-flex align-items-center';
 
-            const levelId = document.createElement('span');
+            const levelId = document.createElement('a');
             levelId.className = 'me-2';
+            levelId.href = `https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index?id=${level.id}&region=${region}`;
+            levelId.target = '_blank';
+            levelId.rel = 'noopener';
             levelId.textContent = `${level.id}`;
 
             const copyButton = document.createElement('button');
