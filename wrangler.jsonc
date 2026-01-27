@@ -14,10 +14,10 @@
 			"custom_domain": true,
 		},
 	],
-	"placement": {
-		"mode": "smart",
-		"host": "bbs-api.miyoushe.com",
-	},
+	// "placement": {
+	// 	"mode": "smart",
+	// 	"host": "bbs-api.miyoushe.com",
+	// },
 	"assets": {
 		"directory": "public",
 		"binding": "PUBLIC",
