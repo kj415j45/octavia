@@ -83,7 +83,7 @@ class Octavia {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify(payload),
-				signal: AbortSignal.timeout(3000),
+				signal: AbortSignal.timeout(4000),
 			});
 
 			const jsonDoc = await response.json();

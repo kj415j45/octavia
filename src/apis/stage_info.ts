@@ -10,20 +10,16 @@ export async function getStageInfo(region: string, stageId: string) {
 	}
 
 	// 尝试从缓存获取
+	var cached: any;
 	try {
 		const db = Global.getEnv().DB;
-		const cached = await db
-			.prepare('SELECT data, expires_at FROM stage_cache WHERE region = ? AND stage_id = ?')
-			.bind(region, stageId)
-			.first();
+		cached = await db.prepare('SELECT data, expires_at FROM stage_cache WHERE region = ? AND stage_id = ?').bind(region, stageId).first();
 
 		if (cached) {
 			const now = Math.floor(Date.now() / 1000);
 			if ((cached.expires_at as number) > now) {
-				console.debug('Cache hit for:', region, stageId);
 				return JSON.parse(cached.data as string);
 			}
-			console.debug('Cache expired for:', region, stageId);
 		}
 	} catch (error) {
 		console.error('Cache read error:', error);
@@ -31,7 +27,14 @@ export async function getStageInfo(region: string, stageId: string) {
 	}
 
 	// 缓存未命中或已过期，从 API 获取数据
-	const result = await octavia.getStageInfo(region as Regions, stageId);
+	const result = await octavia.getStageInfo(region as Regions, stageId).catch((error) => {
+		{
+			console.error('API request error:', error);
+			if (cached) {
+				return JSON.parse(cached.data as string);
+			}
+		}
+	});
 
 	// 将结果写入缓存
 	try {
@@ -44,7 +47,6 @@ export async function getStageInfo(region: string, stageId: string) {
 			.bind(region, stageId, JSON.stringify(result), now, expiresAt)
 			.run();
 
-		console.debug('Cached stage info for:', region, stageId);
 	} catch (error) {
 		console.error('Cache write error:', error);
 		// 缓存写入失败不影响返回结果
