@@ -1,7 +1,10 @@
 import { getStageInfo } from './apis/stage_info';
+import { Global } from './global';
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
+		Global.setEnv(env);
+		Global.setCtx(ctx);
 		if(request.method === 'OPTIONS'){
 			return new Response(null, { headers: corsHeaders });
 		}
