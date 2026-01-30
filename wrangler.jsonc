@@ -26,7 +26,14 @@
 		{
 			"binding": "kv",
 			"id": "7862944b92c14372b58ed6de050ef385",
-			"remote": true
-		}
+			"remote": true,
+		},
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "octavia",
+			"database_id": "e0fc099c-b02d-4913-a41e-32399af7c88a",
+		},
 	],
 }
