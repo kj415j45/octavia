@@ -75,18 +75,24 @@ class Octavia {
 		const url = new URL(endpoint);
 		Object.keys(query).forEach((key) => url.searchParams.append(key, query[key]));
 
-		const response = await fetch(url.toString(), {
-			method,
-			headers: {
-				'User-Agent': this.userAgent,
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(payload),
-		});
+		try {
+			const response = await fetch(url.toString(), {
+				method,
+				headers: {
+					'User-Agent': this.userAgent,
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(payload),
+				signal: AbortSignal.timeout(3000),
+			});
 
-		const jsonDoc = await response.json();
+			const jsonDoc = await response.json();
 
-		return jsonDoc;
+			return jsonDoc;
+		} catch (error) {
+			console.error('Request error:', error);
+			throw error;
+		}
 	}
 }
 
