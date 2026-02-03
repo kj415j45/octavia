@@ -32,7 +32,7 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 			SUM(double1) as sum_duration,
 			AVG(double2) as success_rate,
 			COUNT() as count
-		FROM analytics
+		FROM octavia
 		WHERE
             timestamp >= toDateTime(${Math.floor(oneDayAgo / 1000)})
             AND timestamp <= toDateTime(${Math.floor(now / 1000)})
@@ -50,13 +50,8 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 		const apiToken = env.ANALYTICS_API_TOKEN || '';
 		
 		if (!accountId || !apiToken) {
-			console.warn('Missing ACCOUNT_ID or ANALYTICS_API_TOKEN environment variables, using mock data');
-			console.warn('To enable real data, add these to wrangler.jsonc:');
-			console.warn('[vars]');
-			console.warn('ACCOUNT_ID = "your-account-id"');
-			console.warn('ANALYTICS_API_TOKEN = "your-api-token"');
-			// 返回模拟数据以便测试
-			return generateMockData();
+            console.error('ACCOUNT_ID or ANALYTICS_API_TOKEN is not set.');
+			return [];
 		}
 
 		const sqlUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/analytics_engine/sql`;
@@ -72,7 +67,7 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 		if (!response.ok) {
 			const errorText = await response.text();
 			console.error('Analytics Engine SQL query failed:', response.status, errorText);
-			return generateMockData();
+			return [];
 		}
 
 		const data = await response.json<any>();
@@ -80,7 +75,7 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 		// 解析并转换数据
 		if (!data.data || !Array.isArray(data.data)) {
 			console.warn('Unexpected response format from Analytics Engine');
-			return generateMockData();
+			return [];
 		}
 
 		return data.data.map((row: any) => {
@@ -106,42 +101,6 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 
 	} catch (error) {
 		console.error('Error querying Analytics Engine:', error);
-		return generateMockData();
+		return [];
 	}
-}
-
-/**
- * 生成模拟数据用于测试
- */
-function generateMockData(): StatusDataPoint[] {
-	const now = Date.now();
-	const data: StatusDataPoint[] = [];
-	const fifteenMinutes = 15 * 60 * 1000;
-
-	// 生成最近24小时的数据，每15分钟一个点，降序排列（与SQL查询保持一致）
-	for (let i = 0; i <= 96; i++) {
-		const timestamp = now - i * fifteenMinutes;
-		const date = new Date(timestamp);
-		
-		// 模拟数据：响应时间在 50-500ms 之间波动
-		const baseLatency = 150;
-		const variance = 100;
-		const minDuration = baseLatency + (Math.random() - 0.5) * variance;
-		const maxDuration = minDuration + Math.random() * 200;
-		const avgDuration = (minDuration + maxDuration) / 2;
-		const stdDev = (maxDuration - minDuration) / 4;
-		
-		data.push({
-			timestamp,
-			timeGroup: date.toISOString(),
-			minDuration: Math.round(minDuration),
-			maxDuration: Math.round(maxDuration),
-			avgDuration: Math.round(avgDuration),
-			stdDev: Math.round(stdDev),
-			successRate: 0.95 + Math.random() * 0.05,
-			count: 5, // 每次测试5个奇域
-		});
-	}
-
-	return data;
 }
