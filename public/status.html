@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh" data-bs-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>状态 - Octavia</title>
+    <meta name="name" itemprop="name" content="状态 - Octavia" />
+    <meta name="description" itemprop="description" content="Octavia，千星奇域工具，提供奇域查询功能。" />
+    <meta name="keywords"
+        content="Octavia, 欧科塔维亚, 千星奇域, 原神, Genshin, Genshin Impact, Miliastra Wonderland, miHoYo, 米哈游" />
+    <meta itemprop="image" content="./lib/icon.png" />
+    <link rel="icon" href="./favicon.ico" />
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="./lib/bootstrap.min.css" />
+
+    <link rel="stylesheet" href="./lib/font.css" />
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+    <header>
+        <nav class="navbar bg-body-tertiary">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">欧科塔维亚 - 运行状态</span>
+            </div>
+        </nav>
+    </header>
+
+    <div id="body" class="container mt-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">最近24小时运行状态</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">当前最快响应</h6>
+                        <h2 id="currentMin" class="text-success">--</h2>
+                        <small class="text-muted">毫秒</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">当前最慢响应</h6>
+                        <h2 id="currentMax" class="text-danger">--</h2>
+                        <small class="text-muted">毫秒</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">当前平均响应</h6>
+                        <h2 id="currentAvg" class="text-primary">--</h2>
+                        <small class="text-muted">毫秒</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">当前标准差</h6>
+                        <h2 id="currentStd" class="text-info">--</h2>
+                        <small class="text-muted">毫秒</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-4">
+        <p class="text-center">Source Code is available on <a href="https://github.com/kj415j45/octavia">GitHub</a></p>
+        <p class="text-center">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
+    </footer>
+    <!-- Bootstrap JS Bundle -->
+    <script src="./lib/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script> -->
+    <script src="./lib/chart.umd.min.js"></script>
+    
+    <script>
+        // 获取状态数据并绘制图表
+        async function loadStatusData() {
+            try {
+                const response = await fetch('/api/status');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch status data');
+                }
+                
+                const data = await response.json();
+                
+                if (!data || data.length === 0) {
+                    console.warn('No data available');
+                    return;
+                }
+                
+                // 数据从API返回时是降序（最新在前），需要反转为升序以便图表从左（过去）到右（现在）显示
+                data.reverse();
+                
+                // 提取数据
+                const labels = data.map(point => {
+                    const date = new Date(point.timestamp);
+                    return date.toLocaleString('zh-CN', { 
+                        month: 'numeric', 
+                        day: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                });
+                
+                const minData = data.map(point => point.minDuration);
+                const maxData = data.map(point => point.maxDuration);
+                const avgData = data.map(point => point.avgDuration);
+                const stdData = data.map(point => point.stdDev);
+                
+                // 更新当前值（使用最新的数据点）
+                const latest = data[data.length - 1];
+                document.getElementById('currentMin').textContent = Math.round(latest.minDuration);
+                document.getElementById('currentMax').textContent = Math.round(latest.maxDuration);
+                document.getElementById('currentAvg').textContent = Math.round(latest.avgDuration);
+                document.getElementById('currentStd').textContent = Math.round(latest.stdDev);
+                
+                // 创建图表
+                const ctx = document.getElementById('statusChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '最快响应',
+                                data: minData,
+                                borderColor: 'rgb(25, 135, 84)',
+                                backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                                tension: 0.3,
+                                fill: false
+                            },
+                            {
+                                label: '平均响应',
+                                data: avgData,
+                                borderColor: 'rgb(13, 110, 253)',
+                                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                                tension: 0.3,
+                                fill: false
+                            },
+                            {
+                                label: '最慢响应',
+                                data: maxData,
+                                borderColor: 'rgb(220, 53, 69)',
+                                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                                tension: 0.3,
+                                fill: false
+                            },
+                            {
+                                label: '标准差',
+                                data: stdData,
+                                borderColor: 'rgb(13, 202, 240)',
+                                backgroundColor: 'rgba(13, 202, 240, 0.1)',
+                                borderDash: [5, 5],
+                                tension: 0.3,
+                                fill: false,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        label += Math.round(context.parsed.y) + ' ms';
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: '时间'
+                                },
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45,
+                                    autoSkip: true,
+                                    maxTicksLimit: 20
+                                }
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: '响应时间 (ms)'
+                                },
+                                beginAtZero: true
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: '标准差 (ms)'
+                                },
+                                beginAtZero: true,
+                                grid: {
+                                    drawOnChartArea: false,
+                                }
+                            }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading status data:', error);
+                document.getElementById('body').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <h4 class="alert-heading">加载失败</h4>
+                        <p>无法加载状态数据，请稍后重试。</p>
+                        <hr>
+                        <p class="mb-0">错误信息: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 页面加载时获取数据
+        document.addEventListener('DOMContentLoaded', loadStatusData);
+    </script>
+
+</body>
+
+</html>

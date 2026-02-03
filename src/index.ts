@@ -1,4 +1,5 @@
 import { getStageInfo } from './apis/stage_info';
+import { getStatusData } from './apis/status';
 import { Global } from './global';
 import octavia, { Regions } from './octavia';
 
@@ -26,6 +27,10 @@ export default {
 					const hash = url.searchParams.get('hash') || '';
 					const data = await env.kv.get(hash);
 					return TextResponse(data || '');
+				}
+				case 'status': {
+					const data = await getStatusData();
+					return JSONResponse(data);
 				}
 				default: {
 					return new Response('API endpoint not found', { status: 404 });
