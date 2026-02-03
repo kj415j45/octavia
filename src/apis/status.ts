@@ -25,7 +25,8 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 			MIN(double1) as min_duration,
 			MAX(double1) as max_duration,
 			AVG(double1) as avg_duration,
-			stddevPop(double1) as std_dev,
+			SUM(double1 * double1) as sum_of_squares,
+			SUM(double1) as sum_duration,
 			AVG(double2) as success_rate,
 			COUNT(*) as count
 		FROM analytics
@@ -77,16 +78,26 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 			return generateMockData();
 		}
 
-		return data.data.map((row: any) => ({
-			timestamp: new Date(row.time_bucket).getTime(),
-			timeGroup: row.time_bucket,
-			minDuration: row.min_duration || 0,
-			maxDuration: row.max_duration || 0,
-			avgDuration: row.avg_duration || 0,
-			stdDev: row.std_dev || 0,
-			successRate: row.success_rate || 0,
-			count: row.count || 0,
-		}));
+		return data.data.map((row: any) => {
+			const count = row.count || 0;
+			const sumOfSquares = row.sum_of_squares || 0;
+			const avgDuration = row.avg_duration || 0;
+			
+			// 计算标准差：σ = √(E[X²] - E[X]²) = √(sum_of_squares/count - avg²)
+			const variance = count > 0 ? (sumOfSquares / count - avgDuration * avgDuration) : 0;
+			const stdDev = variance > 0 ? Math.sqrt(variance) : 0;
+			
+			return {
+				timestamp: new Date(row.time_bucket).getTime(),
+				timeGroup: row.time_bucket,
+				minDuration: row.min_duration || 0,
+				maxDuration: row.max_duration || 0,
+				avgDuration,
+				stdDev,
+				successRate: row.success_rate || 0,
+				count,
+			};
+		});
 
 	} catch (error) {
 		console.error('Error querying Analytics Engine:', error);
