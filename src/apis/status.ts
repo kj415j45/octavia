@@ -28,7 +28,7 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 			SUM(double1 * double1) as sum_of_squares,
 			SUM(double1) as sum_duration,
 			AVG(double2) as success_rate,
-			COUNT(*) as count
+			COUNT() as count
 		FROM analytics
 		WHERE timestamp >= NOW() - INTERVAL '1' DAY
 		GROUP BY time_bucket
