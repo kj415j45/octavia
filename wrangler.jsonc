@@ -6,6 +6,7 @@
 		"ACCOUNT_ID": "",
 		"ANALYTICS_API_TOKEN": "",
 	},
+	"keep_vars": true,
 	"compatibility_date": "2025-12-29",
 	"observability": {
 		"enabled": true,
