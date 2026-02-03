@@ -16,6 +16,9 @@ export interface StatusDataPoint {
  */
 export async function getStatusData(): Promise<StatusDataPoint[]> {
 	const env = Global.getEnv();
+
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
 	
 	// 使用 SQL API 查询 Analytics Engine
 	// 数据结构: indexes[1] = region, doubles[1] = duration (ms), doubles[2] = success (1/0)
@@ -30,7 +33,9 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 			AVG(double2) as success_rate,
 			COUNT() as count
 		FROM analytics
-		WHERE timestamp >= NOW() - INTERVAL '1' DAY
+		WHERE
+            timestamp >= toDateTime(${Math.floor(oneDayAgo / 1000)})
+            AND timestamp <= toDateTime(${Math.floor(now / 1000)})
 		GROUP BY time_bucket
 		ORDER BY time_bucket DESC
 	`;
