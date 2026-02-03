@@ -2,6 +2,10 @@
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "octavia",
 	"main": "src/index.ts",
+	"vars": {
+		"ACCOUNT_ID": "",
+		"ANALYTICS_API_TOKEN": "",
+	},
 	"compatibility_date": "2025-12-29",
 	"observability": {
 		"enabled": true,
@@ -36,4 +40,15 @@
 			"database_id": "e0fc099c-b02d-4913-a41e-32399af7c88a",
 		},
 	],
+	"triggers": {
+		"crons": [
+			"* * * * *"
+		]
+	},
+	"analytics_engine_datasets": [
+    	{
+			"binding": "analytics",
+			"dataset": "octavia",
+		},
+  	],
 }

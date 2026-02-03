@@ -1,5 +1,6 @@
 import { getStageInfo } from './apis/stage_info';
 import { Global } from './global';
+import octavia, { Regions } from './octavia';
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -34,6 +35,38 @@ export default {
 
 		return new Response('not found', { status: 404 });
 	},
+
+	async scheduled(controller, env, ctx) {
+		Global.setEnv(env);
+		Global.setCtx(ctx);
+
+		const region = Regions.CN_GF;
+		const stageIds = ['7257388309', '11342092235', '7042697842', '32913306460', '24195383780'];
+
+		// 测试每个奇域并记录用时
+		for (const stageId of stageIds) {
+			const startTime = Date.now();
+			let success = true;
+			let errorMsg = '';
+			
+			try {
+				await octavia.getStageInfo(region, stageId);
+			} catch (error: any) {
+				success = false;
+				errorMsg = error.message || 'Unknown error';
+				console.error(`Failed to query stage ${stageId}:`, error);
+			}
+			
+			const duration = Date.now() - startTime;
+			
+			// 写入 Analytics Engine
+			env.analytics.writeDataPoint({
+				indexes: [`${region}-${stageId}`],
+				doubles: [duration, success ? 1 : 0],
+				blobs: [success ? '' : errorMsg]
+			});
+		}
+	}
 } satisfies ExportedHandler<Env>;
 
 const corsHeaders = {
