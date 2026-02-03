@@ -59,9 +59,8 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 			method: 'POST',
 			headers: {
 				'Authorization': `Bearer ${apiToken}`,
-				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify({ query }),
+			body: query,
 		});
 
 		if (!response.ok) {
