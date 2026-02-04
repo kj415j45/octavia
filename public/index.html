@@ -494,7 +494,7 @@
 
         async function loadBonusMessage(hash) {
             try {
-                const message = await getBonusMessage(hash);
+                var message = await getBonusMessage(hash);
                 if (message) {
                     if(message.includes('http://') || message.includes('https://')) {
                         const urlPattern = /(https?:\/\/[^\s]+)/g;
