@@ -62,7 +62,7 @@ class Octavia {
 			},
 			mys: {
 				aid: developerInfo.developer.aid,
-				avatar: mysInfo?.avatar_url,
+				avatar: mysInfo?.avatar_url == "" ? null : mysInfo?.avatar_url,
 				name: mysInfo?.nickname,
 			},
 		};
