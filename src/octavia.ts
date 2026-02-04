@@ -24,6 +24,7 @@ class Octavia {
 		console.debug('Received stage info:', resp_map);
 		const levelDetail = resp_map.level_detail.data.level_detail_response.level_info;
 		const developerInfo = resp_map.developer_info.data.developer_news_response;
+		const defaultAvatar = 'https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1769653604473developer_default_avatar.png';
 		const level = {
 			region: region,
 			id: stageId,
@@ -56,7 +57,7 @@ class Octavia {
 		const mysInfo = developerInfo.developer.mys_user_info;
 		const author = {
 			game: {
-				avatar: developerInfo.developer.game_avatar,
+				avatar: developerInfo.developer.game_avatar === defaultAvatar ? null : developerInfo.developer.game_avatar,
 				name: developerInfo.developer.game_nickname,
 			},
 			mys: {
