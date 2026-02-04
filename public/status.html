@@ -46,8 +46,14 @@
                 <div class="card text-center">
                     <div class="card-body">
                         <h6 class="card-title text-muted">当前最快响应</h6>
-                        <h2 id="currentMin" class="text-success">--</h2>
-                        <small class="text-muted">毫秒</small>
+                        <h2 class="text-success">
+                            <span id="currentMin">--</span>
+                            <span id="minTrend"></span>
+                        </h2>
+                        <small class="text-muted">
+                            毫秒
+                            <div id="minAvg" class="mt-1"></div>
+                        </small>
                     </div>
                 </div>
             </div>
@@ -55,8 +61,14 @@
                 <div class="card text-center">
                     <div class="card-body">
                         <h6 class="card-title text-muted">当前最慢响应</h6>
-                        <h2 id="currentMax" class="text-danger">--</h2>
-                        <small class="text-muted">毫秒</small>
+                        <h2 class="text-danger">
+                            <span id="currentMax">--</span>
+                            <span id="maxTrend"></span>
+                        </h2>
+                        <small class="text-muted">
+                            毫秒
+                            <div id="maxAvg" class="mt-1"></div>
+                        </small>
                     </div>
                 </div>
             </div>
@@ -64,17 +76,29 @@
                 <div class="card text-center">
                     <div class="card-body">
                         <h6 class="card-title text-muted">当前平均响应</h6>
-                        <h2 id="currentAvg" class="text-primary">--</h2>
-                        <small class="text-muted">毫秒</small>
+                        <h2 class="text-primary">
+                            <span id="currentAvg">--</span>
+                            <span id="avgTrend"></span>
+                        </h2>
+                        <small class="text-muted">
+                            毫秒
+                            <div id="avgAvgValue" class="mt-1"></div>
+                        </small>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
                 <div class="card text-center">
                     <div class="card-body">
-                        <h6 class="card-title text-muted">当前标准差</h6>
-                        <h2 id="currentStd" class="text-info">--</h2>
-                        <small class="text-muted">毫秒</small>
+                        <h6 class="card-title text-muted">当前成功率</h6>
+                        <h2 class="text-info">
+                            <span id="currentSuccessRate">--</span>
+                            <span id="successRateTrend"></span>
+                        </h2>
+                        <small class="text-muted">
+                            %
+                            <div id="successRateAvg" class="mt-1"></div>
+                        </small>
                     </div>
                 </div>
             </div>
@@ -123,14 +147,70 @@
                 const minData = data.map(point => point.minDuration);
                 const maxData = data.map(point => point.maxDuration);
                 const avgData = data.map(point => point.avgDuration);
-                const stdData = data.map(point => point.stdDev);
+                const successRateData = data.map(point => point.successRate * 100); // 转换为百分比
                 
                 // 更新当前值（使用最新的数据点）
                 const latest = data[data.length - 1];
+                const previous = data.length > 1 ? data[data.length - 2] : null;
+                
+                // 计算24小时平均值
+                const calc24hAvg = (dataPoints, field) => {
+                    const sum = dataPoints.reduce((acc, point) => acc + point[field], 0);
+                    return sum / dataPoints.length;
+                };
+                
+                const avg24hMin = calc24hAvg(data, 'minDuration');
+                const avg24hMax = calc24hAvg(data, 'maxDuration');
+                const avg24hAvg = calc24hAvg(data, 'avgDuration');
+                const avg24hSuccessRate = calc24hAvg(data, 'successRate');
+                
+                // 生成趋势箭头
+                const getTrendArrow = (current, previous) => {
+                    if (!previous) return '';
+                    if (current > previous) return '↑ ';
+                    if (current < previous) return '↓ ';
+                    return '→ ';
+                };
+                
+                // 成功率的趋势相反（越高越好）
+                const getSuccessRateTrendArrow = (current, previous) => {
+                    if (!previous) return '';
+                    if (current > previous) return '↑ ';
+                    if (current < previous) return '↓ ';
+                    return '→ ';
+                };
+                
+                // 更新最快响应
                 document.getElementById('currentMin').textContent = Math.round(latest.minDuration);
+                document.getElementById('minTrend').textContent = getTrendArrow(
+                    latest.minDuration, 
+                    previous ? previous.minDuration : null
+                );
+                document.getElementById('minAvg').textContent = `(24h平均: ${Math.round(avg24hMin)}ms)`;
+                
+                // 更新最慢响应
                 document.getElementById('currentMax').textContent = Math.round(latest.maxDuration);
+                document.getElementById('maxTrend').textContent = getTrendArrow(
+                    latest.maxDuration, 
+                    previous ? previous.maxDuration : null
+                );
+                document.getElementById('maxAvg').textContent = `(24h平均: ${Math.round(avg24hMax)}ms)`;
+                
+                // 更新平均响应
                 document.getElementById('currentAvg').textContent = Math.round(latest.avgDuration);
-                document.getElementById('currentStd').textContent = Math.round(latest.stdDev);
+                document.getElementById('avgTrend').textContent = getTrendArrow(
+                    latest.avgDuration, 
+                    previous ? previous.avgDuration : null
+                );
+                document.getElementById('avgAvgValue').textContent = `(24h平均: ${Math.round(avg24hAvg)}ms)`;
+                
+                // 更新成功率
+                document.getElementById('currentSuccessRate').textContent = (latest.successRate * 100).toFixed(2);
+                document.getElementById('successRateTrend').textContent = getSuccessRateTrendArrow(
+                    latest.successRate, 
+                    previous ? previous.successRate : null
+                );
+                document.getElementById('successRateAvg').textContent = `(24h平均: ${(avg24hSuccessRate * 100).toFixed(2)}%)`;
                 
                 // 创建图表
                 const ctx = document.getElementById('statusChart').getContext('2d');
@@ -164,8 +244,8 @@
                                 fill: false
                             },
                             {
-                                label: '标准差',
-                                data: stdData,
+                                label: '成功率',
+                                data: successRateData,
                                 borderColor: 'rgb(13, 202, 240)',
                                 backgroundColor: 'rgba(13, 202, 240, 0.1)',
                                 borderDash: [5, 5],
@@ -193,7 +273,11 @@
                                         if (label) {
                                             label += ': ';
                                         }
-                                        label += Math.round(context.parsed.y) + ' ms';
+                                        if (context.dataset.label === '成功率') {
+                                            label += context.parsed.y.toFixed(2) + ' %';
+                                        } else {
+                                            label += Math.round(context.parsed.y) + ' ms';
+                                        }
                                         return label;
                                     }
                                 }
@@ -210,7 +294,11 @@
                                     maxRotation: 45,
                                     minRotation: 45,
                                     autoSkip: true,
-                                    maxTicksLimit: 20
+                                    maxTicksLimit: 20,
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
                                 }
                             },
                             y: {
@@ -221,7 +309,13 @@
                                     display: true,
                                     text: '响应时间 (ms)'
                                 },
-                                beginAtZero: true
+                                beginAtZero: true,
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
                             },
                             y1: {
                                 type: 'linear',
@@ -229,11 +323,16 @@
                                 position: 'right',
                                 title: {
                                     display: true,
-                                    text: '标准差 (ms)'
+                                    text: '成功率 (%)'
                                 },
                                 beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                },
                                 grid: {
                                     drawOnChartArea: false,
+                                    color: 'rgba(255, 255, 255, 0.1)'
                                 }
                             }
                         }

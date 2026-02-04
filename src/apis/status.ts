@@ -6,7 +6,6 @@ export interface StatusDataPoint {
 	minDuration: number;
 	maxDuration: number;
 	avgDuration: number;
-	stdDev: number;
 	successRate: number;
 	count: number;
 }
@@ -25,12 +24,11 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 	const query = `
 		SELECT
 			toStartOfInterval(timestamp, INTERVAL '15' MINUTE) as time_bucket,
-			MIN(double1) as min_duration,
-			MAX(double1) as max_duration,
-			AVG(double1) as avg_duration,
-			SUM(double1 * double1) as sum_of_squares,
-			SUM(double1) as sum_duration,
+			MIN(if(double2 = 1, double1, 999999.0)) as min_duration,
+			MAX(if(double2 = 1, double1, 0.0)) as max_duration,
+			SUM(if(double2 = 1, double1, 0.0)) / SUM(double2) as avg_duration,
 			AVG(double2) as success_rate,
+			SUM(double2) as success_count,
 			COUNT() as count
 		FROM octavia
 		WHERE
@@ -79,23 +77,17 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 		}
 
 		return data.data.map((row: any) => {
-			const count = row.count || 0;
-			const sumOfSquares = row.sum_of_squares || 0;
-			const avgDuration = row.avg_duration || 0;
-			
-			// 计算标准差：σ = √(E[X²] - E[X]²) = √(sum_of_squares/count - avg²)
-			const variance = count > 0 ? (sumOfSquares / count - avgDuration * avgDuration) : 0;
-			const stdDev = variance > 0 ? Math.sqrt(variance) : 0;
+			const successCount = row.success_count || 0;
+			const hasSuccessfulRequests = successCount > 0;
 			
 			return {
 				timestamp: new Date(row.time_bucket).getTime(),
 				timeGroup: row.time_bucket,
-				minDuration: row.min_duration || 0,
-				maxDuration: row.max_duration || 0,
-				avgDuration,
-				stdDev,
+				minDuration: hasSuccessfulRequests ? (row.min_duration || 0) : 0,
+				maxDuration: hasSuccessfulRequests ? (row.max_duration || 0) : 0,
+				avgDuration: hasSuccessfulRequests ? (row.avg_duration || 0) : 0,
 				successRate: row.success_rate || 0,
-				count,
+				count: row.count || 0,
 			};
 		});
 
