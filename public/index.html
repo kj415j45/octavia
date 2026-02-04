@@ -32,7 +32,7 @@
 
     <div id="body" class="container-fluid d-flex flex-column justify-content-center align-items-center mt-auto mb-auto">
         <div id="search" class="text-center my-4 col-10 col-md-8 col-lg-6">
-            <form onsubmit="event.preventDefault(); loadStages(document.getElementById('stageIdsInput').value);"
+            <form onsubmit="handleSubmit(event)"
                 class="row g-2">
                 <div class="col-8 col-md-10">
                     <input type="text" id="stageIdsInput" class="form-control" placeholder="输入奇域ID，支持自动识别" />
@@ -468,27 +468,50 @@
                 });
                 hintsDiv.appendChild(copyExcelButton);
 
-                let bonusMessage = await getBounsMessage(hashHex);
-                if (bonusMessage) {
-                    // detect url
-                    if(bonusMessage.includes('http://') || bonusMessage.includes('https://')) {
-                        const urlPattern = /(https?:\/\/[^\s]+)/g;
-                        bonusMessage = bonusMessage.replace(urlPattern, function(url) {
-                            return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
-                        });
-                    }
-
-                    const bonusDiv = document.createElement('div');
-                    bonusDiv.className = 'alert alert-info';
-                    bonusDiv.innerHTML = bonusMessage;
-                    hintsDiv.appendChild(bonusDiv);
-                }
+                await loadBonusMessage(hashHex);
             }
         }
 
-        async function getBounsMessage(hash) {
+        async function handleSubmit(event){
+            event.preventDefault();
+            const input = document.getElementById('stageIdsInput').value;
+            const hintsDiv = document.getElementById('hints');
+            if(input.length <= 20){
+                const bonusMessage = document.querySelector('.bonus-message');
+                if(bonusMessage){
+                    bonusMessage.remove();
+                }
+                const message = await loadBonusMessage(input);
+                if(message != null && message != '') return;
+            }
+            await loadStages(input);
+        }
+
+        async function getBonusMessage(hash) {
             const response = await fetch(`${baseUrl}/api/bonus?hash=${hash}`);
             return await response.text();
+        }
+
+        async function loadBonusMessage(hash) {
+            try {
+                const message = await getBonusMessage(hash);
+                if (message) {
+                    if(message.includes('http://') || message.includes('https://')) {
+                        const urlPattern = /(https?:\/\/[^\s]+)/g;
+                        message = message.replace(urlPattern, function(url) {
+                            return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+                        });
+                    }
+                    const hintsDiv = document.getElementById('hints');
+                    const bonusDiv = document.createElement('div');
+                    bonusDiv.className = 'alert alert-info bonus-message';
+                    bonusDiv.innerHTML = message;
+                    hintsDiv.appendChild(bonusDiv);
+                }
+                return message;
+            } catch (err) {
+                return null;
+            }
         }
 
         populateRegionDropdown().then(() => {
