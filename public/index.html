@@ -341,7 +341,8 @@
             }
 
             const avatar = document.createElement('img');
-            avatar.src = author.game.avatar ?? author.mys.avatar ?? "";
+            const fallbackAvatar = "https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1769653604473developer_default_avatar.png"
+            avatar.src = author.game.avatar ?? author.mys.avatar ?? fallbackAvatar;
             avatar.alt = author.game.name ?? author.mys.name ?? "";
             avatar.className = 'rounded-circle me-2';
             avatar.style.width = '40px';
