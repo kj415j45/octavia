@@ -46,7 +46,7 @@ export default {
 		Global.setCtx(ctx);
 
 		const region = Regions.CN_GF;
-		const stageIds = ['7257388309', '11342092235', '7042697842', '32913306460', '24195383780'];
+		const stageIds = ['7257388309', '32913306460', '24195383780'];
 
 		// 测试每个奇域并记录用时
 		for (const stageId of stageIds) {
