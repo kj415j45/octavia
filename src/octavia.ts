@@ -87,7 +87,7 @@ class Octavia {
 				name: mysInfo?.nickname,
 			},
 			hyl: {
-				aid: hylInfo?.aid,
+				aid: hylInfo?.uid,
 				avatar: this.getValidAvatar(hylInfo?.avatar_url),
 				pendant: hylInfo?.pendant,
 				name: hylInfo?.nickname,
