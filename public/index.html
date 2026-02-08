@@ -352,18 +352,38 @@
                 authorLink.style.pointerEvents = 'none';
             }
 
+            // Create avatar container to hold avatar and pendant
+            const avatarContainer = document.createElement('div');
+            avatarContainer.className = 'position-relative me-2';
+            avatarContainer.style.width = '40px';
+            avatarContainer.style.height = '40px';
+
             const avatar = document.createElement('img');
             const fallbackAvatar = "https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1769653604473developer_default_avatar.png"
             avatar.src = author.game.avatar ?? author.mys.avatar ?? author.hyl.avatar ?? fallbackAvatar;
             avatar.alt = author.game.name ?? author.mys.name ?? author.hyl.name ?? "";
-            avatar.className = 'rounded-circle me-2';
+            avatar.className = 'rounded-circle';
             avatar.style.width = '40px';
             avatar.style.height = '40px';
+
+            avatarContainer.appendChild(avatar);
+
+            // Add pendant (avatar frame) if available
+            if (author.hyl && author.hyl.pendant) {
+                const pendant = document.createElement('img');
+                pendant.src = author.hyl.pendant;
+                pendant.alt = 'Avatar Frame';
+                pendant.className = 'position-absolute top-0 start-0';
+                pendant.style.width = '40px';
+                pendant.style.height = '40px';
+                pendant.style.pointerEvents = 'none'; // Allow clicks to pass through
+                avatarContainer.appendChild(pendant);
+            }
 
             const authorName = document.createElement('span');
             authorName.textContent = author.game.name ?? author.mys.name ?? author.hyl.name ?? "";
 
-            authorLink.appendChild(avatar);
+            authorLink.appendChild(avatarContainer);
             authorLink.appendChild(authorName);
 
             authorInfo.appendChild(authorLink);

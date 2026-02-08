@@ -82,14 +82,14 @@ class Octavia {
 				name: developerInfo.developer.game_nickname,
 			},
 			mys: {
-				aid: developerInfo.developer.aid,
+				aid: mysInfo?.aid,
 				avatar: this.getValidAvatar(mysInfo?.avatar_url),
 				name: mysInfo?.nickname,
 			},
 			hyl: {
-				aid: developerInfo.developer.aid,
+				aid: hylInfo?.aid,
 				avatar: this.getValidAvatar(hylInfo?.avatar_url),
-				pedant: hylInfo?.pedant,
+				pendant: hylInfo?.pendant,
 				name: hylInfo?.nickname,
 			}
 		};
