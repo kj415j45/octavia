@@ -4,5 +4,14 @@
     },
     "cn_qd01": {
         "name": "国服B服（世界树）"
+    },
+    "os_asia": {
+        "name": "国际服亚服（Asia）"
+    },
+    "os_euro": {
+        "name": "国际服欧服（Europe）"
+    },
+    "os_usa": {
+        "name": "国际服美服（America）"
     }
 }
