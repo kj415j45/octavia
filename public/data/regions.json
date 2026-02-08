@@ -23,5 +23,10 @@
         "name": "国际服美服（America）",
         "author": "https://www.hoyolab.com/accountCenter/",
         "stage": "https://act.hoyolab.com/ys/ugc_community/mx/#/pages/level-detail/index"
+    },
+    "os_cht": {
+        "name": "港澳台服（TW, HK, MO）",
+        "author": "https://www.hoyolab.com/accountCenter/",
+        "stage": "https://act.hoyolab.com/ys/ugc_community/mx/#/pages/level-detail/index"
     }
 }

@@ -4,11 +4,11 @@ export enum Regions {
 	CN_GF = 'cn_gf01',
 	CN_BILI = 'cn_qd01',
 
+	CN_CHT = 'os_cht',
+
 	GLB_AS = 'os_asia',
 	GLB_EU = 'os_euro',
 	GLB_NA = 'os_usa',
-
-	
 }
 
 class Octavia {
@@ -23,6 +23,7 @@ class Octavia {
 			case Regions.CN_GF:
 			case Regions.CN_BILI:
 				return 'https://bbs-api.miyoushe.com/community/ugc_community/web/api/level/full/info';
+			case Regions.CN_CHT:
 			case Regions.GLB_NA:
 			case Regions.GLB_EU:
 			case Regions.GLB_AS:
