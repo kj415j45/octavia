@@ -1,32 +1,32 @@
 {
     "cn_gf01": {
         "name": "国服官服（天空岛）",
-        "author": "https://www.miyoushe.com/ys/accountCenter/postList",
+        "author": "https://www.miyoushe.com/ys/accountCenter",
         "stage": "https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index"
     },
     "cn_qd01": {
         "name": "国服B服（世界树）",
-        "author": "https://www.miyoushe.com/ys/accountCenter/postList",
+        "author": "https://www.miyoushe.com/ys/accountCenter",
         "stage": "https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index"
     },
     "os_asia": {
         "name": "国际服亚服（Asia）",
-        "author": "https://www.hoyolab.com/accountCenter/",
+        "author": "https://www.hoyolab.com/accountCenter",
         "stage": "https://act.hoyolab.com/ys/ugc_community/mx/#/pages/level-detail/index"
     },
     "os_euro": {
         "name": "国际服欧服（Europe）",
-        "author": "https://www.hoyolab.com/accountCenter/",
+        "author": "https://www.hoyolab.com/accountCenter",
         "stage": "https://act.hoyolab.com/ys/ugc_community/mx/#/pages/level-detail/index"
     },
     "os_usa": {
         "name": "国际服美服（America）",
-        "author": "https://www.hoyolab.com/accountCenter/",
+        "author": "https://www.hoyolab.com/accountCenter",
         "stage": "https://act.hoyolab.com/ys/ugc_community/mx/#/pages/level-detail/index"
     },
     "os_cht": {
         "name": "港澳台服（TW, HK, MO）",
-        "author": "https://www.hoyolab.com/accountCenter/",
+        "author": "https://www.hoyolab.com/accountCenter",
         "stage": "https://act.hoyolab.com/ys/ugc_community/mx/#/pages/level-detail/index"
     }
 }

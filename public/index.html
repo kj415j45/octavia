@@ -340,7 +340,7 @@
             authorInfo.className = 'd-flex align-items-center';
 
             const authorAid = author.mys.aid ?? author.hyl.aid ?? "0";
-            const authorLinkHref = authorAid !== "0" ? `${authorEndpointBase}?account_id=${authorAid}` : '#';
+            const authorLinkHref = authorAid !== "0" ? `${authorEndpointBase}?id=${authorAid}` : '#';
 
             const authorLink = document.createElement('a');
             authorLink.href = authorLinkHref;
