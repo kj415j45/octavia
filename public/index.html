@@ -64,12 +64,25 @@
         const baseUrl = "";
         const regionMap = {};
         var region = 'cn_gf01';
+        var authorEndpointBase = 'https://www.miyoushe.com/ys/accountCenter/postList';
+        var stageEndpointBase = 'https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index';
 
         const regionSelect = document.getElementById('regionSelect');
         regionSelect.addEventListener('change', (event) => {
-            region = event.target.value;
-            console.log(`Selected region: ${region}`);
+            updateRegion(event.target.value);
         });
+
+        function updateRegion(newRegion) {
+            if (regionMap[newRegion]) {
+                region = newRegion;
+                regionSelect.value = newRegion;
+                authorEndpointBase = regionMap[newRegion].author || 'https://www.miyoushe.com/ys/accountCenter/postList';
+                stageEndpointBase = regionMap[newRegion].stage || 'https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index';
+                console.log(`Region updated to: ${region}`);
+            } else {
+                console.warn(`Region ${newRegion} not found in regionMap.`);
+            }
+        }
 
         async function getRegionMap() {
             const response = await fetch(`${baseUrl}/data/regions.json`);
@@ -92,15 +105,13 @@
                 document.getElementById('regionSelect').appendChild(option);
             }
 
-            // select the first by default
-            if (select.options.length > 0) {
-                select.options[0].selected = true;
-                region = select.options[0].value;
-            }
             const regionFromUrl = new URLSearchParams(window.location.search).get('region');
             if (regionFromUrl && regionMap[regionFromUrl]) {
                 select.value = regionFromUrl;
-                region = regionFromUrl;
+                updateRegion(regionFromUrl);
+            } else {
+                select.options[0].selected = true;
+                updateRegion(select.options[0].value);
             }
         }
 
@@ -328,10 +339,11 @@
             const authorInfo = document.createElement('div');
             authorInfo.className = 'd-flex align-items-center';
 
-            const authorAid = author.mys.aid;
+            const authorAid = author.mys.aid ?? author.hyl.aid ?? "0";
+            const authorLinkHref = authorAid !== "0" ? `${authorEndpointBase}?account_id=${authorAid}` : '#';
 
             const authorLink = document.createElement('a');
-            authorLink.href = `https://www.miyoushe.com/ys/accountCenter/postList?id=${authorAid}`;
+            authorLink.href = authorLinkHref;
             authorLink.target = '_blank';
             authorLink.rel = 'noopener';
             authorLink.className = 'd-flex align-items-center text-decoration-none';
@@ -342,14 +354,14 @@
 
             const avatar = document.createElement('img');
             const fallbackAvatar = "https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1769653604473developer_default_avatar.png"
-            avatar.src = author.game.avatar ?? author.mys.avatar ?? fallbackAvatar;
-            avatar.alt = author.game.name ?? author.mys.name ?? "";
+            avatar.src = author.game.avatar ?? author.mys.avatar ?? author.hyl.avatar ?? fallbackAvatar;
+            avatar.alt = author.game.name ?? author.mys.name ?? author.hyl.name ?? "";
             avatar.className = 'rounded-circle me-2';
             avatar.style.width = '40px';
             avatar.style.height = '40px';
 
             const authorName = document.createElement('span');
-            authorName.textContent = author.game.name ?? author.mys.name ?? "";
+            authorName.textContent = author.game.name ?? author.mys.name ?? author.hyl.name ?? "";
 
             authorLink.appendChild(avatar);
             authorLink.appendChild(authorName);
@@ -362,7 +374,7 @@
 
             const levelId = document.createElement('a');
             levelId.className = 'me-2';
-            levelId.href = `https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index?id=${level.id}&region=${region}`;
+            levelId.href = `${stageEndpointBase}?id=${level.id}&region=${region}`;
             levelId.target = '_blank';
             levelId.rel = 'noopener';
             levelId.textContent = `${level.id}`;
