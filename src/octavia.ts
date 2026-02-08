@@ -129,6 +129,7 @@ class Octavia {
 				headers: {
 					'User-Agent': this.userAgent,
 					'Content-Type': 'application/json',
+					'X-Rpc-Language': 'zh-cn',
 				},
 				body: JSON.stringify(payload),
 				signal: AbortSignal.timeout(3000),
