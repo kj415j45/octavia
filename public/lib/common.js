@@ -71,15 +71,6 @@ function makeStageCard(stage, region, options = {}) {
     const card = document.createElement('div');
     card.className = 'card h-100 mx-1';
 
-    // Add region badge if needed
-    if (showRegion) {
-        const regionBadge = document.createElement('div');
-        regionBadge.className = 'card-header bg-info text-white text-center py-1';
-        regionBadge.style.fontSize = '0.875rem';
-        regionBadge.textContent = regionMap[region]?.name || region;
-        card.appendChild(regionBadge);
-    }
-
     // Add preview image with click-to-fullscreen functionality
     const previewContainer = document.createElement('div');
     previewContainer.className = 'position-relative';
@@ -376,6 +367,15 @@ function makeStageCard(stage, region, options = {}) {
     cardBody.appendChild(footer);
 
     card.appendChild(cardBody);
+
+    // Add region badge at the bottom if needed
+    if (showRegion) {
+        const regionBadge = document.createElement('div');
+        regionBadge.className = 'card-footer bg-info text-white text-center py-1';
+        regionBadge.style.fontSize = '0.875rem';
+        regionBadge.textContent = regionMap[region]?.name || region;
+        card.appendChild(regionBadge);
+    }
 
     return card;
 }
