@@ -4,7 +4,10 @@ export async function getAuthorInfo(id: string) {
 	const db = Global.getEnv().DB;
 	
 	// 规范化uid：如果没有前缀，自动添加m前缀并尝试
-	let uid = id;
+	let uid = `${id}`.trim();
+    if(uid === '0' || uid === '' || uid === 'null' || uid === 'undefined') {
+        throw new Error(`Invalid author ID: ${id}`);
+    }
 	let hasPrefix = id.startsWith('m') || id.startsWith('h');
 	
 	if (!hasPrefix) {
