@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS stage_cache (
     PRIMARY KEY (region, stage_id)
 );
 
+-- 为stage_cache表的uid字段创建索引，提高按作者查询的性能
+CREATE INDEX IF NOT EXISTS idx_stage_cache_uid ON stage_cache(uid);
+
 -- 作者信息表：存储作者详细信息
 CREATE TABLE IF NOT EXISTS author (
     uid TEXT NOT NULL PRIMARY KEY,
