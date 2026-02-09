@@ -71,13 +71,13 @@
         <!-- Author Info Card -->
         <div id="authorInfo" class="author-card text-center my-4 col-10 col-md-8 col-lg-6">
             <!-- Author info will be loaded here -->
-            <div class="spinner-border text-light" role="status">
+            <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">加载中...</span>
             </div>
         </div>
 
         <!-- Stages List -->
-        <div id="stagesContainer" class="my-4">
+        <div id="stagesContainer" class="my-4 w-100">
             <div id="stages" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
                 <!-- Stage cards will be appended here -->
             </div>
@@ -154,7 +154,7 @@
             }
 
             authorInfoDiv.innerHTML = `
-                <div class="d-flex align-items-start gap-4 text-start">
+                <div class="d-flex flex-column flex-md-row align-items-center align-items-md-start gap-4 text-center text-md-start">
                     <div class="author-avatar-container flex-shrink-0">
                         <img src="${author.avatar || 'https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1769653604473developer_default_avatar.png'}" 
                              alt="${author.name}" 
@@ -168,7 +168,7 @@
                         
                         <span>已知奇域数量：<strong>${author.stages.length}</strong></span>
 
-                        <div class="d-flex gap-3 mt-auto">
+                        <div class="d-flex gap-3 mt-auto justify-content-center justify-content-md-start">
                             ${platformLinks}
                         </div>
                     </div>
