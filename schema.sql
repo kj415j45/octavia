@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS stage_cache (
 -- 为stage_cache表的uid字段创建索引，提高按作者查询的性能
 CREATE INDEX IF NOT EXISTS idx_stage_cache_uid ON stage_cache(uid);
 
+-- 为stage_cache表的主键创建唯一索引
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stage_cache_pk ON stage_cache(region, stage_id);
+
 -- 作者信息表：存储作者详细信息
 CREATE TABLE IF NOT EXISTS author (
     uid TEXT NOT NULL PRIMARY KEY,
@@ -20,3 +23,6 @@ CREATE TABLE IF NOT EXISTS author (
     ingame_name TEXT,
     pendant TEXT
 );
+
+-- 为author表的主键创建唯一索引
+CREATE UNIQUE INDEX IF NOT EXISTS idx_author_pk ON author(uid);

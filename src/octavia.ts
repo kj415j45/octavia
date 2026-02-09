@@ -83,15 +83,15 @@ class Octavia {
 				name: developerInfo.developer.game_nickname,
 			},
 			mys: {
-				aid: mysInfo?.aid,
+				aid: mysInfo?.aid || null,
 				avatar: this.getValidAvatar(mysInfo?.avatar_url),
-				name: mysInfo?.nickname,
+				name: mysInfo?.nickname || null,
 			},
 			hyl: {
-				aid: hylInfo?.uid,
+				aid: hylInfo?.uid || null,
 				avatar: this.getValidAvatar(hylInfo?.avatar_url),
-				pendant: hylInfo?.pendant,
-				name: hylInfo?.nickname,
+				pendant: hylInfo?.pendant || null,
+				name: hylInfo?.nickname || null,
 			}
 		};
 		return {
@@ -101,12 +101,20 @@ class Octavia {
 	}
 
 	protected getValidAvatar(avatar: string) {
-		const mysDefaultAvatar = 'https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1769653604473developer_default_avatar.png';
-		const hylDefaultAvatar = 'https://fastcdn.hoyoverse.com/static-resource-v2/2026/02/03/d82e8dcf18900bc983428acc1e4961d2_279538261314927397.png';
-		if (!avatar || avatar === mysDefaultAvatar || avatar === hylDefaultAvatar) {
+		const knownDefaultAvatars = [
+			'https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1761034625041ugc_community_default_avatar.png',
+			'https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1769653604473developer_default_avatar.png',
+			'https://fastcdn.hoyoverse.com/static-resource-v2/2026/02/03/d82e8dcf18900bc983428acc1e4961d2_279538261314927397.png',
+		];
+
+		if (!avatar || knownDefaultAvatars.includes(avatar)) {
 			return null;
 		}
 		return avatar;
+	}
+
+	public getDefaultAvatar() {
+		return 'https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1769653604473developer_default_avatar.png';
 	}
 
 	protected parseStageCategory(category: string) {

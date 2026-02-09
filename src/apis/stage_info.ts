@@ -63,7 +63,7 @@ export async function getStageInfo(region: string, stageId: string) {
 			const author = result.author;
 			// 优先使用对应平台的信息
 			const platformInfo = uid.startsWith('m') ? author.mys : author.hyl;
-			const avatar = platformInfo?.avatar || author.game?.avatar || null;
+			const avatar = platformInfo?.avatar || author.game?.avatar || octavia.getDefaultAvatar();
 			const name = platformInfo?.name || null;
 			const ingameName = author.game?.name || null;
 			const pendant = uid.startsWith('h') ? author.hyl?.pendant : null;
