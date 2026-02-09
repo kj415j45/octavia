@@ -13,7 +13,7 @@ export async function getStageInfo(region: string, stageId: string) {
 	var cached: any;
 	try {
 		const db = Global.getEnv().DB;
-		cached = await db.prepare('SELECT data, expires_at FROM stage_cache WHERE region = ? AND stage_id = ?').bind(region, stageId).first();
+		cached = await db.prepare('SELECT data, created_at, expires_at FROM stage_cache WHERE region = ? AND stage_id = ?').bind(region, stageId).first();
 
 		if (cached) {
 			const now = Math.floor(Date.now() / 1000);
@@ -50,11 +50,12 @@ export async function getStageInfo(region: string, stageId: string) {
 	try {
 		const db = Global.getEnv().DB;
 		const now = Math.floor(Date.now() / 1000);
+		const createdAt = cached ? Math.floor(cached.created_at as number) : now;
 		const expiresAt = now + CACHE_TTL;
 
 		await db
 			.prepare('INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, data, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
-			.bind(region, stageId, uid, JSON.stringify(result), now, expiresAt)
+			.bind(region, stageId, uid, JSON.stringify(result), createdAt, expiresAt)
 			.run();
 
 		// 更新作者信息表
