@@ -35,15 +35,8 @@ export default {
 				}
 				case 'author': {
 					const id = url.searchParams.get('id') || '';
-					if (!id) {
-						return new Response('Missing id parameter', { status: 400 });
-					}
-					try {
-						const data = await getAuthorInfo(id);
-						return JSONResponse(data);
-					} catch (error: any) {
-						return new Response(error.message || 'Failed to get author info', { status: 404 });
-					}
+					const data = await getAuthorInfo(id);
+					return JSONResponse(data);
 				}
 				default: {
 					return new Response('API endpoint not found', { status: 404 });
