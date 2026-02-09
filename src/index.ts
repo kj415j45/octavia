@@ -1,5 +1,6 @@
 import { getStageInfo } from './apis/stage_info';
 import { getStatusData } from './apis/status';
+import { getAuthorInfo } from './apis/author';
 import { Global } from './global';
 import octavia, { Regions } from './octavia';
 
@@ -31,6 +32,18 @@ export default {
 				case 'status': {
 					const data = await getStatusData();
 					return JSONResponse(data);
+				}
+				case 'author': {
+					const id = url.searchParams.get('id') || '';
+					if (!id) {
+						return new Response('Missing id parameter', { status: 400 });
+					}
+					try {
+						const data = await getAuthorInfo(id);
+						return JSONResponse(data);
+					} catch (error: any) {
+						return new Response(error.message || 'Failed to get author info', { status: 404 });
+					}
 				}
 				default: {
 					return new Response('API endpoint not found', { status: 404 });
