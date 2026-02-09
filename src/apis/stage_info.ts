@@ -36,6 +36,16 @@ export async function getStageInfo(region: string, stageId: string) {
 		}
 	});
 
+	// 提取uid（优先mys，加m前缀；否则hyl，加h前缀）
+	let uid: string | null = null;
+	if (result?.author) {
+		if (result.author.mys?.aid) {
+			uid = `m${result.author.mys.aid}`;
+		} else if (result.author.hyl?.aid) {
+			uid = `h${result.author.hyl.aid}`;
+		}
+	}
+
 	// 将结果写入缓存
 	try {
 		const db = Global.getEnv().DB;
@@ -43,9 +53,25 @@ export async function getStageInfo(region: string, stageId: string) {
 		const expiresAt = now + CACHE_TTL;
 
 		await db
-			.prepare('INSERT OR REPLACE INTO stage_cache (region, stage_id, data, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
-			.bind(region, stageId, JSON.stringify(result), now, expiresAt)
+			.prepare('INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, data, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
+			.bind(region, stageId, uid, JSON.stringify(result), now, expiresAt)
 			.run();
+
+		// 更新作者信息表
+		if (uid && result?.author) {
+			const author = result.author;
+			// 优先使用对应平台的信息
+			const platformInfo = uid.startsWith('m') ? author.mys : author.hyl;
+			const avatar = platformInfo?.avatar || author.game?.avatar || null;
+			const name = platformInfo?.name || null;
+			const ingameName = author.game?.name || null;
+			const pendant = uid.startsWith('h') ? author.hyl?.pendant : null;
+
+			await db
+				.prepare('INSERT OR REPLACE INTO author (uid, avatar, name, ingame_name, pendant) VALUES (?, ?, ?, ?, ?)')
+				.bind(uid, avatar, name, ingameName, pendant)
+				.run();
+		}
 
 	} catch (error) {
 		console.error('Cache write error:', error);
