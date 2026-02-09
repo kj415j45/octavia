@@ -293,7 +293,7 @@ function makeStageCard(stage, region, options = {}) {
     const authorInfo = document.createElement('div');
     authorInfo.className = 'd-flex align-items-center';
 
-    const authorUid = author.mys?.aid || author.hyl?.uid || "0";
+    const authorUid = author.mys?.aid || author.hyl?.aid || "0";
     const authorLinkHref = authorUid !== "0" ? (linkToPlatform ? `${authorEndpointBase}?id=${authorUid}` : `/author/${authorUid}`) : '#';
 
     const authorLink = document.createElement('a');
