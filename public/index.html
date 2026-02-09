@@ -9,13 +9,13 @@
     <meta name="description" itemprop="description" content="Octavia，千星奇域工具，提供奇域查询功能。" />
     <meta name="keywords"
         content="Octavia, 欧科塔维亚, 千星奇域, 原神, Genshin, Genshin Impact, Miliastra Wonderland, miHoYo, 米哈游" />
-    <meta itemprop="image" content="./lib/icon.png" />
-    <link rel="icon" href="./favicon.ico" />
+    <meta itemprop="image" content="/lib/icon.png" />
+    <link rel="icon" href="/favicon.ico" />
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="./lib/bootstrap.min.css" />
+    <link rel="stylesheet" href="/lib/bootstrap.min.css" />
 
-    <link rel="stylesheet" href="./lib/font.css" />
+    <link rel="stylesheet" href="/lib/font.css" />
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -59,13 +59,11 @@
         <p class="text-center">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
     </footer>
     <!-- Bootstrap JS Bundle -->
-    <script src="./lib/bootstrap.bundle.min.js"></script>
+    <script src="/lib/bootstrap.bundle.min.js"></script>
+    <!-- Common utilities -->
+    <script src="/lib/common.js"></script>
     <script>
-        const baseUrl = "";
-        const regionMap = {};
         var region = 'cn_gf01';
-        var authorEndpointBase = 'https://www.miyoushe.com/ys/accountCenter/postList';
-        var stageEndpointBase = 'https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index';
 
         const regionSelect = document.getElementById('regionSelect');
         regionSelect.addEventListener('change', (event) => {
@@ -76,359 +74,30 @@
             if (regionMap[newRegion]) {
                 region = newRegion;
                 regionSelect.value = newRegion;
-                authorEndpointBase = regionMap[newRegion].author || 'https://www.miyoushe.com/ys/accountCenter/postList';
-                stageEndpointBase = regionMap[newRegion].stage || 'https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index';
                 console.log(`Region updated to: ${region}`);
             } else {
                 console.warn(`Region ${newRegion} not found in regionMap.`);
             }
         }
 
-        async function getRegionMap() {
-            const response = await fetch(`${baseUrl}/data/regions.json`);
-            const regions = await response.json();
-            for (const [id, info] of Object.entries(regions)) {
-                regionMap[id] = info;
+        async function initPage() {
+            const initialRegion = await populateRegionDropdown(region);
+            if (initialRegion) {
+                region = initialRegion;
+                updateRegion(region);
             }
-        }
-        // Populate the dropdown menu with regions
-        async function populateRegionDropdown() {
-            await getRegionMap(); // Ensure regionMap is populated
-            //clear existing options
-            const select = document.getElementById('regionSelect');
-            select.innerHTML = '';
-
-            for (const [id, data] of Object.entries(regionMap)) {
-                const option = document.createElement('option');
-                option.value = id;
-                option.textContent = data.name;
-                document.getElementById('regionSelect').appendChild(option);
+            
+            // Check URL params after initialization
+            const query = new URLSearchParams(window.location.search);
+            const stageIdsParam = query.get('stages');
+            if (stageIdsParam) {
+                loadStages(stageIdsParam);
             }
-
-            const regionFromUrl = new URLSearchParams(window.location.search).get('region');
-            if (regionFromUrl && regionMap[regionFromUrl]) {
-                select.value = regionFromUrl;
-                updateRegion(regionFromUrl);
-            } else {
-                select.options[0].selected = true;
-                updateRegion(select.options[0].value);
-            }
-        }
-
-        async function getStageInfo(region, id) {
-            const response = await fetch(`${baseUrl}/api/stage?region=${region}&id=${id}`);
-            return await response.json();
-        }
-
-        function makeStageCard(stage) {
-            pushStage(stage);
-            const level = stage.level;
-            const meta = level.meta;
-            const author = stage.author;
-
-            // Create card container
-            const card = document.createElement('div');
-            // Ensure card body stretches to align footer at the bottom
-            card.className = 'card h-100 mx-1';
-
-            // Add preview image with click-to-fullscreen functionality
-            const previewContainer = document.createElement('div');
-            previewContainer.className = 'position-relative';
-
-            const img = document.createElement('img');
-            img.src = meta.cover.images[0];
-            img.className = 'card-img-top';
-            img.alt = meta.name;
-            img.style.cursor = 'pointer';
-
-            img.addEventListener('click', () => {
-                // Create fullscreen overlay
-                const overlay = document.createElement('div');
-                overlay.className = 'fullscreen-overlay';
-                overlay.style.position = 'fixed';
-                overlay.style.top = '0';
-                overlay.style.left = '0';
-                overlay.style.width = '100%';
-                overlay.style.height = '100%';
-                overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-                overlay.style.zIndex = '1050';
-                overlay.style.display = 'flex';
-                overlay.style.justifyContent = 'center';
-                overlay.style.alignItems = 'center';
-
-                // Create carousel for fullscreen preview
-                const carousel = document.createElement('div');
-                carousel.id = `carousel-${level.id}`;
-                carousel.className = 'carousel slide';
-                carousel.style.width = '80%';
-                carousel.style.maxWidth = '800px';
-
-                const carouselInner = document.createElement('div');
-                carouselInner.className = 'carousel-inner';
-
-                meta.cover.images.forEach((image, index) => {
-                    const carouselItem = document.createElement('div');
-                    carouselItem.className = `carousel-item${index === 0 ? ' active' : ''}`;
-
-                    const img = document.createElement('img');
-                    img.dataset.src = image; // Use data-src for lazy loading
-                    img.className = 'd-block w-100 lazy'; // Add lazy class
-                    img.alt = `${meta.name} - ${index + 1}`;
-
-                    carouselItem.appendChild(img);
-                    carouselInner.appendChild(carouselItem);
-                });
-
-                carousel.appendChild(carouselInner);
-
-                // Add carousel controls
-                const prevButton = document.createElement('button');
-                prevButton.className = 'carousel-control-prev';
-                prevButton.type = 'button';
-                prevButton.setAttribute('data-bs-target', `#carousel-${level.id}`);
-                prevButton.setAttribute('data-bs-slide', 'prev');
-                prevButton.innerHTML = `
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
-                `;
-
-                const nextButton = document.createElement('button');
-                nextButton.className = 'carousel-control-next';
-                nextButton.type = 'button';
-                nextButton.setAttribute('data-bs-target', `#carousel-${level.id}`);
-                nextButton.setAttribute('data-bs-slide', 'next');
-                nextButton.innerHTML = `
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
-                `;
-
-                carousel.appendChild(prevButton);
-                carousel.appendChild(nextButton);
-
-                // Close button for overlay
-                const closeButton = document.createElement('button');
-                closeButton.className = 'btn-close btn-close-white position-absolute top-0 end-0 m-3';
-                closeButton.style.zIndex = '1060';
-                closeButton.addEventListener('click', () => {
-                    document.body.removeChild(overlay);
-                });
-
-                overlay.appendChild(carousel);
-                overlay.appendChild(closeButton);
-                document.body.appendChild(overlay);
-
-                // Initialize Bootstrap carousel
-                const bootstrapCarousel = new bootstrap.Carousel(carousel);
-
-                // Initialize lazy loading after appending images
-                const lazyImages = document.querySelectorAll('img.lazy');
-                const observer = new IntersectionObserver((entries, obs) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const img = entry.target;
-                            img.src = img.dataset.src; // Set the actual src
-                            img.classList.remove('lazy');
-                            obs.unobserve(img);
-                        }
-                    });
-                });
-
-                lazyImages.forEach(img => observer.observe(img));
-            });
-
-            previewContainer.appendChild(img);
-            card.appendChild(previewContainer);
-
-            // Create card body
-            const cardBody = document.createElement('div');
-            cardBody.className = 'card-body d-flex flex-column';
-
-            // Add name and hot score/good rate
-            const titleRow = document.createElement('div');
-            titleRow.className = 'd-flex justify-content-between align-items-center';
-
-            const name = document.createElement('h5');
-            name.className = 'card-title';
-            name.textContent = meta.name;
-            titleRow.appendChild(name);
-
-            const stats = document.createElement('small');
-            stats.className = 'text-muted';
-            stats.textContent = `${meta.hotScore} | ${meta.goodRate}`;
-            titleRow.appendChild(stats);
-
-            cardBody.appendChild(titleRow);
-
-            const textContainer = document.createElement('ul');
-            textContainer.className = 'list-group';
-
-            // Add intro
-            const intro = document.createElement('li');
-            intro.className = 'list-group-item';
-            intro.innerHTML = meta.intro.replace(/\n/g, '<br>');
-            intro.style.height = '5em'; // Set fixed height
-            intro.style.overflowY = 'auto'; // Enable vertical scrolling
-            textContainer.appendChild(intro);
-
-            // Add description
-            const description = document.createElement('li');
-            description.className = 'list-group-item';
-            description.innerHTML = meta.description.replace(/\n/g, '<br>');
-            description.style.height = '7em'; // Set fixed height
-            description.style.overflowY = 'auto'; // Enable vertical scrolling
-            textContainer.appendChild(description);
-
-            cardBody.appendChild(textContainer);
-
-            // Add tags as badges
-            const tagsContainer = document.createElement('div');
-            tagsContainer.className = 'd-flex justify-content-between my-2 row';
-
-            const leftTags = document.createElement('div');
-            leftTags.className = 'col-6';
-            const playerNumTag = document.createElement('span');
-            playerNumTag.className = 'badge me-1';
-            if (meta.players.str.startsWith('1')) {
-                if (meta.players.str.startsWith('1-')) {
-                    playerNumTag.classList.add('bg-info');
-                } else {
-                    playerNumTag.classList.add('bg-success');
-                }
-            } else {
-                playerNumTag.classList.add('bg-warning');
-            }
-            playerNumTag.textContent = `[${meta.players.min}, ${meta.players.max}] ${meta.players.str}人`;
-            const typeBadge = document.createElement('span');
-            typeBadge.className = 'badge bg-secondary me-1';
-            typeBadge.textContent = meta.type;
-            leftTags.appendChild(typeBadge);
-            const categoryBadge = document.createElement('span');
-            categoryBadge.className = 'badge me-1';
-            if(meta.category == '轻量趣味'){
-                categoryBadge.classList.add('bg-success');
-            } else if(meta.category == '长线游玩'){
-                categoryBadge.classList.add('bg-warning');
-            } else {
-                categoryBadge.classList.add('bg-secondary');
-            }
-            categoryBadge.textContent = meta.category;
-            leftTags.appendChild(categoryBadge);
-
-            leftTags.appendChild(document.createElement('br')); // Spacer
-            leftTags.appendChild(playerNumTag);
-
-            const rightTags = document.createElement('div');
-            rightTags.className = 'col-6 text-end';
-            meta.tags.forEach(tag => {
-                const badge = document.createElement('span');
-                badge.className = 'badge bg-primary me-1';
-                badge.textContent = tag;
-                rightTags.appendChild(badge);
-            });
-
-            tagsContainer.appendChild(leftTags);
-            tagsContainer.appendChild(rightTags);
-            cardBody.appendChild(tagsContainer);
-
-            // Add author and level ID section
-            const footer = document.createElement('div');
-            // Adjust footer to stick to the bottom
-            footer.className = 'card-footer mt-auto d-flex justify-content-between align-items-center';
-
-            // Author info
-            const authorInfo = document.createElement('div');
-            authorInfo.className = 'd-flex align-items-center';
-
-            const authorAid = author.mys.aid ?? author.hyl.aid ?? "0";
-            const authorLinkHref = authorAid !== "0" ? `${authorEndpointBase}?id=${authorAid}` : '#';
-
-            const authorLink = document.createElement('a');
-            authorLink.href = authorLinkHref;
-            authorLink.target = '_blank';
-            authorLink.rel = 'noopener';
-            authorLink.className = 'd-flex align-items-center text-decoration-none';
-            if(authorAid == "0") {
-                authorLink.href = '#';
-                authorLink.style.pointerEvents = 'none';
-            }
-
-            // Create avatar container to hold avatar and pendant
-            const avatarContainer = document.createElement('div');
-            avatarContainer.className = 'position-relative me-2';
-            avatarContainer.style.width = '40px';
-            avatarContainer.style.height = '40px';
-
-            const avatar = document.createElement('img');
-            const fallbackAvatar = "https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1769653604473developer_default_avatar.png"
-            avatar.src = author.game.avatar ?? author.mys.avatar ?? author.hyl.avatar ?? fallbackAvatar;
-            avatar.alt = author.game.name ?? author.mys.name ?? author.hyl.name ?? "";
-            avatar.className = 'rounded-circle';
-            avatar.style.width = '40px';
-            avatar.style.height = '40px';
-
-            avatarContainer.appendChild(avatar);
-
-            // Add pendant (avatar frame) if available
-            if (author.hyl && author.hyl.pendant) {
-                const pendant = document.createElement('img');
-                pendant.src = author.hyl.pendant;
-                pendant.alt = 'Avatar Frame';
-                pendant.className = 'position-absolute top-0 start-0';
-                pendant.style.width = '40px';
-                pendant.style.height = '40px';
-                pendant.style.pointerEvents = 'none'; // Allow clicks to pass through
-                avatarContainer.appendChild(pendant);
-            }
-
-            const authorName = document.createElement('span');
-            authorName.textContent = author.game.name ?? author.mys.name ?? author.hyl.name ?? "";
-
-            authorLink.appendChild(avatarContainer);
-            authorLink.appendChild(authorName);
-
-            authorInfo.appendChild(authorLink);
-
-            // Level ID and copy button
-            const levelInfo = document.createElement('div');
-            levelInfo.className = 'd-flex align-items-center';
-
-            const levelId = document.createElement('a');
-            levelId.className = 'me-2';
-            levelId.href = `${stageEndpointBase}?id=${level.id}&region=${region}`;
-            levelId.target = '_blank';
-            levelId.rel = 'noopener';
-            levelId.textContent = `${level.id}`;
-
-            const copyButton = document.createElement('button');
-            copyButton.className = 'btn btn-sm btn-outline-secondary';
-            copyButton.textContent = '复制';
-            copyButton.addEventListener('click', () => {
-                navigator.clipboard.writeText(level.id);
-                copyButton.textContent = '已复制';
-                copyButton.classList.remove('btn-outline-secondary');
-                copyButton.classList.add('btn-success');
-                setTimeout(() => {
-                    copyButton.textContent = '复制';
-                    copyButton.classList.remove('btn-success');
-                    copyButton.classList.add('btn-outline-secondary');
-                }, 2000); // Revert after 2 seconds
-            });
-
-            levelInfo.appendChild(levelId);
-            levelInfo.appendChild(copyButton);
-
-            footer.appendChild(authorInfo);
-            footer.appendChild(levelInfo);
-            cardBody.appendChild(footer);
-
-            card.appendChild(cardBody);
-
-            return card;
         }
 
         async function loadStages(stageIdsString) {
             // Clean up
-            $Stages = [];
+            $Stages.length = 0;
             document.getElementById('copyExcelButton')?.remove();
 
             const pattern = /\d+/g;
@@ -450,7 +119,7 @@
                         const levelId = stage.level.id;
                         validStageIds.push(levelId);
 
-                        const stageCard = makeStageCard(stage);
+                        const stageCard = makeStageCard(stage, region);
                         const col = document.createElement('div');
                         col.className = 'col d-flex justify-content-center';
                         col.appendChild(stageCard);
@@ -547,27 +216,14 @@
             }
         }
 
-        populateRegionDropdown().then(() => {
-            // After populating the dropdown, check URL params
-            const query = new URLSearchParams(window.location.search);
-            const stageIdsParam = query.get('stages');
-            if (stageIdsParam) {
-                loadStages(stageIdsParam);
-            }
-        });
+        // Initialize page
+        initPage();
 
     </script>
 
     <!-- Dev Tools -->
-    <script src="lib/lodash.min.js" defer></script>
+    <script src="/lib/lodash.min.js" defer></script>
     <script>
-        var $Stages = [];
-        function pushStage(stage) {
-            if (!$Stages.find(s => s.level.id === stage.level.id)) {
-                $Stages.push(stage);
-            }
-        }
-
         console.log('%c Welcome to Octavia!\n%c Loaded stages can be found in $Stages\n%c Lodash 4.17.21 is globally available as _', 'background: #222; color: #bada55; font-size: 16px;', 'background: #222; color: #bada55; font-size: 12px;', 'background: #222; color: #bada55; font-size: 12px;');
     </script>
 </body>

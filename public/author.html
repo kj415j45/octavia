@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>作者信息 - Octavia</title>
+    <meta name="name" itemprop="name" content="Octavia - 千星奇域工具" />
+    <meta name="description" itemprop="description" content="Octavia，千星奇域工具，提供奇域查询功能。" />
+    <link rel="icon" href="/favicon.ico" />
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/lib/bootstrap.min.css" />
+    <link rel="stylesheet" href="/lib/font.css" />
+
+    <style>
+        .author-card {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            background-color: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .author-avatar-container {
+            position: relative;
+            width: 180px;
+            height: 180px;
+        }
+
+        .author-avatar-container img {
+            width: 180px;
+            height: 180px;
+        }
+
+        .author-avatar {
+            border-radius: 50%;
+        }
+
+        .author-pendant {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .platform-link {
+            width: 40px;
+            height: 40px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .platform-link:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+    <header>
+        <nav class="navbar bg-body-tertiary">
+            <div class="container-fluid">
+                <a href="/" class="navbar-brand mb-0 h1" style="cursor: pointer;">欧科塔维亚</a>
+                <span class="text-muted">作者信息</span>
+            </div>
+        </nav>
+    </header>
+
+    <div id="body" class="container-fluid d-flex flex-column justify-content-center align-items-center mt-auto mb-auto">
+        <!-- Author Info Card -->
+        <div id="authorInfo" class="author-card text-center my-4 col-10 col-md-8 col-lg-6">
+            <!-- Author info will be loaded here -->
+            <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+        </div>
+
+        <!-- Stages List -->
+        <div id="stagesContainer" class="my-4">
+            <div id="stages" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+                <!-- Stage cards will be appended here -->
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-auto pt-4">
+        <p class="text-center">Source Code is available on <a href="https://github.com/kj415j45/octavia">GitHub</a></p>
+        <p class="text-center">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
+    </footer>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="/lib/bootstrap.bundle.min.js"></script>
+    <!-- Common utilities -->
+    <script src="/lib/common.js"></script>
+    <script>
+        async function loadAuthorInfo() {
+            const urlPattern = /author\/([^\/]+)/;
+            const match = window.location.pathname.match(urlPattern);
+            let uid = match ? match[1] : null;
+
+            if (!uid) {
+                showError('未提供作者 UID');
+                return;
+            }
+
+            try {
+                // Fetch author info
+                const authorData = await getAuthorInfo(uid);
+
+                // Update URL with actual UID if it was normalized
+                if (authorData.uid !== uid) {
+                    window.history.replaceState(null, '', `/author/${authorData.uid}`);
+                    uid = authorData.uid;
+                }
+
+                // Display author info
+                displayAuthorInfo(authorData);
+
+                // Load stages
+                await loadAuthorStages(authorData.stages);
+
+            } catch (error) {
+                console.error('Failed to load author info:', error);
+                showError('未找到该作者或加载失败');
+            }
+        }
+
+        function displayAuthorInfo(author) {
+            const authorInfoDiv = document.getElementById('authorInfo');
+            
+            // Determine platform links
+            const isMiyoushe = author.uid.startsWith('m');
+            const isHoyolab = author.uid.startsWith('h');
+            
+            // Extract numeric ID for platform links
+            const numericId = author.uid.substring(1);
+            
+            let platformLinks = '';
+            if (isMiyoushe) {
+                platformLinks = `
+                    <a href="https://www.miyoushe.com/ys/accountCenter/postList?id=${numericId}" 
+                       target="_blank" rel="noopener" title="米游社">
+                        <img src="/lib/miyoushe.png" alt="米游社" class="platform-link" />
+                    </a>
+                `;
+            } else if (isHoyolab) {
+                platformLinks = `
+                    <a href="https://www.hoyolab.com/accountCenter/postList?id=${numericId}" 
+                       target="_blank" rel="noopener" title="HoYoLAB">
+                        <img src="/lib/hoyolab.png" alt="HoYoLAB" class="platform-link" />
+                    </a>
+                `;
+            }
+
+            authorInfoDiv.innerHTML = `
+                <div class="d-flex align-items-start gap-4 text-start">
+                    <div class="author-avatar-container flex-shrink-0">
+                        <img src="${author.avatar || 'https://bbs-static.miyoushe.com/upload/op_manual_upload/ugc_community/1769653604473developer_default_avatar.png'}" 
+                             alt="${author.name}" 
+                             class="author-avatar" />
+                        ${author.pendant ? `<img src="${author.pendant}" alt="Avatar Frame" class="author-pendant" />` : ''}
+                    </div>
+                    
+                    <div class="flex-grow-1 d-flex flex-column" style="min-height: 180px;">
+                        <h2 class="mb-2">${author.name || '未知作者'}</h2>
+                        ${author.ingameName ? `<p class="text-muted mb-3">${author.ingameName}</p>` : ''}
+                        
+                        <span>已知奇域数量：<strong>${author.stages.length}</strong></span>
+
+                        <div class="d-flex gap-3 mt-auto">
+                            ${platformLinks}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadAuthorStages(stages) {
+            const stagesDiv = document.getElementById('stages');
+            stagesDiv.innerHTML = '';
+
+            if (stages.length === 0) {
+                stagesDiv.innerHTML = '<div class="col-12 text-center text-muted">该作者暂无已知奇域作品</div>';
+                return;
+            }
+
+            // Load region map first
+            await getRegionMap();
+
+            // Group stages by region for better organization
+            for (const stageInfo of stages) {
+                try {
+                    const stage = await getStageInfo(stageInfo.region, stageInfo.stageId);
+                    if (stage && stage.level) {
+                        const stageCard = makeStageCard(stage, stageInfo.region, { showRegion: true, linkToPlatform: true });
+                        const col = document.createElement('div');
+                        col.className = 'col d-flex justify-content-center';
+                        col.appendChild(stageCard);
+                        stagesDiv.appendChild(col);
+                    }
+                } catch (err) {
+                    console.error(`Failed to load stage ${stageInfo.stageId} from ${stageInfo.region}:`, err);
+                }
+            }
+
+            if (stagesDiv.children.length === 0) {
+                stagesDiv.innerHTML = '<div class="col-12 text-center text-muted">加载奇域信息失败</div>';
+            }
+        }
+
+        function showError(message) {
+            const authorInfoDiv = document.getElementById('authorInfo');
+            authorInfoDiv.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <h4 class="alert-heading">错误</h4>
+                    <p>${message}</p>
+                    <hr>
+                    <p class="mb-0">
+                        <a href="./index.html" class="btn btn-outline-light">返回首页</a>
+                    </p>
+                </div>
+            `;
+        }
+
+        // Initialize page
+        loadAuthorInfo();
+    </script>
+
+    <!-- Dev Tools -->
+    <script src="/lib/lodash.min.js" defer></script>
+    <script>
+        console.log('%c Welcome to Octavia Author Page!\n%c Loaded stages can be found in $Stages\n%c Lodash 4.17.21 is globally available as _', 'background: #222; color: #bada55; font-size: 16px;', 'background: #222; color: #bada55; font-size: 12px;', 'background: #222; color: #bada55; font-size: 12px;');
+    </script>
+</body>
+
+</html>
