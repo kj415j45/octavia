@@ -292,6 +292,8 @@ function makeStageCard(stage, region, options = {}) {
     const authorLink = document.createElement('a');
     authorLink.href = authorLinkHref;
     authorLink.className = 'd-flex align-items-center text-decoration-none';
+    authorLink.target = '_blank';
+    authorLink.rel = 'noopener';
     if (authorUid == "0") {
         authorLink.style.pointerEvents = 'none';
         authorLink.style.cursor = 'default';
