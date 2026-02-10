@@ -1,7 +1,12 @@
-import octavia, { Regions } from '../octavia';
+import octavia, { Regions, StageNotFoundError } from '../octavia';
 import { Global } from '../global';
 
 const CACHE_TTL = 3600; // 1小时，单位：秒
+
+type RequestStatus = {
+	cache: boolean; // 是否使用了缓存
+	upstream: boolean | null; // 上游是否可用，null表示未知
+};
 
 export async function getStageInfo(region: string, stageId: string) {
 	const validRegions = Object.values(Regions);
@@ -9,16 +14,27 @@ export async function getStageInfo(region: string, stageId: string) {
 		throw new Error(`Invalid region: ${region}. Valid regions are: ${validRegions.join(', ')}`);
 	}
 
+	const status: RequestStatus = {
+		cache: false,
+		upstream: null,
+	};
+
 	// 尝试从缓存获取
 	var cached: any;
 	try {
 		const db = Global.getEnv().DB;
-		cached = await db.prepare('SELECT data, created_at, expires_at FROM stage_cache WHERE region = ? AND stage_id = ?').bind(region, stageId).first();
+		cached = await db
+			.prepare('SELECT data, created_at, expires_at FROM stage_cache WHERE region = ? AND stage_id = ?')
+			.bind(region, stageId)
+			.first();
 
 		if (cached) {
 			const now = Math.floor(Date.now() / 1000);
 			if ((cached.expires_at as number) > now) {
-				return JSON.parse(cached.data as string);
+				const data = cached.data;
+				status.cache = true;
+				const ret = Object.assign(JSON.parse(data as string), { status });
+				return ret;
 			}
 		}
 	} catch (error) {
@@ -27,14 +43,24 @@ export async function getStageInfo(region: string, stageId: string) {
 	}
 
 	// 缓存未命中或已过期，从 API 获取数据
-	const result = await octavia.getStageInfo(region as Regions, stageId).catch((error) => {
-		{
-			console.error('API request error:', error);
+	let result: any;
+	try {
+		result = await octavia.getStageInfo(region as Regions, stageId);
+		status.upstream = true;
+	} catch (error) {
+		if (error instanceof StageNotFoundError) {
 			if (cached) {
-				return JSON.parse(cached.data as string);
+				const data = cached.data;
+				status.cache = true;
+				status.upstream = false;
+				Object.assign(data, { status });
+				return JSON.parse(data as string);
 			}
+		} else {
+			console.error('API request error:', error);
+			throw error;
 		}
-	});
+	}
 
 	// 提取uid（优先mys，加m前缀；否则hyl，加h前缀）
 	let uid: string | null = null;
@@ -73,11 +99,11 @@ export async function getStageInfo(region: string, stageId: string) {
 				.bind(uid, avatar, name, ingameName, pendant)
 				.run();
 		}
-
 	} catch (error) {
 		console.error('Cache write error:', error);
 		// 缓存写入失败不影响返回结果
 	}
 
+	Object.assign(result, { status });
 	return result;
 }

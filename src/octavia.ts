@@ -46,6 +46,10 @@ class Octavia {
 		const levelDetail = resp_map.level_detail.data.level_detail_response.level_info;
 		const developerInfo = resp_map.developer_info.data.developer_news_response;
 
+		if(levelDetail.retcode === StageNotFoundError.retcode){
+			throw new StageNotFoundError(`Stage with ID ${stageId} not found in region ${region}`);
+		}
+
 		const level = {
 			region: region,
 			id: stageId,
@@ -151,6 +155,14 @@ class Octavia {
 			console.error('Request error:', error);
 			throw error;
 		}
+	}
+}
+
+export class StageNotFoundError extends Error {
+	static readonly retcode = -2000431;
+	constructor(message: string) {
+		super(message);
+		this.name = 'StageNotFoundError';
 	}
 }
 
