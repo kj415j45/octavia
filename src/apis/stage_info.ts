@@ -57,8 +57,8 @@ export async function getStageInfo(region: string, stageId: string) {
 				console.warn(`Stage ${stageId} in region ${region} not found. Using cache.`);
 				const data = cached.data;
 				status.cache = true;
-				Object.assign(data, { status });
-				return JSON.parse(data as string);
+				const ret = Object.assign(JSON.parse(data as string), { status });
+				return ret;
 			}
 		}
 		status.upstream = false;
