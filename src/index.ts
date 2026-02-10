@@ -11,40 +11,44 @@ export default {
 		if (request.method === 'OPTIONS') {
 			return new Response(null, { headers: corsHeaders });
 		}
-		const url = new URL(request.url);
-		if (url.pathname.startsWith('/api/') && request.method === 'GET') {
-			const endpoint = url.pathname.replace('/api/', '');
-			switch (endpoint) {
-				case 'test': {
-					return new Response('API is working!');
-				}
-				case 'stage': {
-					const region = url.searchParams.get('region') || '';
-					const stageId = url.searchParams.get('id') || '';
-					const data = await getStageInfo(region, stageId);
-					return JSONResponse(data);
-				}
-				case 'bonus': {
-					const hash = url.searchParams.get('hash') || '';
-					const data = await env.kv.get(hash);
-					return TextResponse(data || '');
-				}
-				case 'status': {
-					const data = await getStatusData();
-					return JSONResponse(data);
-				}
-				case 'author': {
-					const id = url.searchParams.get('id') || '';
-					const data = await getAuthorInfo(id);
-					return JSONResponse(data);
-				}
-				default: {
-					return new Response('API endpoint not found', { status: 404 });
+		try {
+			const url = new URL(request.url);
+			if (url.pathname.startsWith('/api/') && request.method === 'GET') {
+				const endpoint = url.pathname.replace('/api/', '');
+				switch (endpoint) {
+					case 'test': {
+						return new Response('API is working!');
+					}
+					case 'stage': {
+						const region = url.searchParams.get('region') || '';
+						const stageId = url.searchParams.get('id') || '';
+						const data = await getStageInfo(region, stageId);
+						return JSONResponse(data);
+					}
+					case 'bonus': {
+						const hash = url.searchParams.get('hash') || '';
+						const data = await env.kv.get(hash);
+						return TextResponse(data || '');
+					}
+					case 'status': {
+						const data = await getStatusData();
+						return JSONResponse(data);
+					}
+					case 'author': {
+						const id = url.searchParams.get('id') || '';
+						const data = await getAuthorInfo(id);
+						return JSONResponse(data);
+					}
+					default: {
+						return new Response('API endpoint not found', { status: 404 });
+					}
 				}
 			}
-		}
 
-		return new Response('not found', { status: 404 });
+			return new Response('not found', { status: 404 });
+		} catch (e) {
+			return new Response(null, { status: 500 });
+		}
 	},
 
 	async scheduled(controller, env, ctx) {
@@ -85,7 +89,7 @@ export default {
 					doubles: [duration, success ? 1 : 0],
 					blobs: [success ? '' : errorMsg],
 				});
-			})
+			}),
 		);
 	},
 } satisfies ExportedHandler<Env>;
