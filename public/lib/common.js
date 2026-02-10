@@ -61,6 +61,8 @@ function makeStageCard(stage, region, options = {}) {
     const level = stage.level;
     const meta = level.meta;
     const author = stage.author;
+    const status = stage.status;
+    const removed = status.removed;
     
     const showRegion = options.showRegion || false;
     const linkToPlatform = options.linkToPlatform || false;
@@ -70,6 +72,12 @@ function makeStageCard(stage, region, options = {}) {
     // Create card container
     const card = document.createElement('div');
     card.className = 'card h-100 mx-1';
+    
+    // Add warning background for removed stages
+    if (removed) {
+        card.style.background = 'repeating-linear-gradient(45deg, #ff6b6b, #ff6b6b 10px, #ffffff 10px, #ffffff 20px)';
+        card.style.opacity = '0.9';
+    }
 
     // Add preview image with click-to-fullscreen functionality
     const previewContainer = document.createElement('div');
@@ -93,18 +101,22 @@ function makeStageCard(stage, region, options = {}) {
         modal.style.alignItems = 'center';
         modal.style.justifyContent = 'center';
         modal.style.zIndex = '9999';
-        modal.style.cursor = 'pointer';
+        modal.style.cursor = 'default';
 
         const modalContent = document.createElement('div');
         modalContent.style.position = 'relative';
         modalContent.style.maxWidth = '90vw';
         modalContent.style.maxHeight = '90vh';
+        modalContent.style.display = 'flex';
+        modalContent.style.alignItems = 'center';
+        modalContent.style.justifyContent = 'center';
 
         const fullImg = document.createElement('img');
         fullImg.className = 'img-fluid';
         fullImg.style.maxWidth = '100%';
         fullImg.style.maxHeight = '90vh';
         fullImg.style.objectFit = 'contain';
+        fullImg.style.cursor = 'default';
 
         const images = meta.cover.images;
         let currentIndex = 0;
@@ -112,10 +124,13 @@ function makeStageCard(stage, region, options = {}) {
 
         const closeBtn = document.createElement('button');
         closeBtn.textContent = '✕';
-        closeBtn.className = 'btn btn-danger position-absolute';
-        closeBtn.style.top = '10px';
-        closeBtn.style.right = '10px';
-        closeBtn.style.zIndex = '10000';
+        closeBtn.className = 'btn btn-danger position-fixed';
+        closeBtn.style.top = '20px';
+        closeBtn.style.right = '20px';
+        closeBtn.style.zIndex = '10001';
+        closeBtn.style.width = '50px';
+        closeBtn.style.height = '50px';
+        closeBtn.style.fontSize = '1.5rem';
 
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -123,14 +138,51 @@ function makeStageCard(stage, region, options = {}) {
         });
 
         if (images.length > 1) {
+            const isMobile = window.innerWidth < 768;
+            
             const prevBtn = document.createElement('button');
-            prevBtn.textContent = '‹';
-            prevBtn.className = 'btn btn-light position-absolute';
-            prevBtn.style.left = '10px';
-            prevBtn.style.top = '50%';
-            prevBtn.style.transform = 'translateY(-50%)';
-            prevBtn.style.fontSize = '2rem';
-            prevBtn.style.zIndex = '10000';
+            prevBtn.textContent = '<';
+            prevBtn.className = 'btn btn-light position-fixed';
+            prevBtn.style.zIndex = '10001';
+            
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '>';
+            nextBtn.className = 'btn btn-light position-fixed';
+            nextBtn.style.zIndex = '10001';
+            
+            if (isMobile) {
+                // 移动端：按钮在底部并排显示
+                prevBtn.style.left = '50%';
+                prevBtn.style.bottom = '20px';
+                prevBtn.style.transform = 'translateX(-70px)';
+                prevBtn.style.fontSize = '1.5rem';
+                prevBtn.style.width = '50px';
+                prevBtn.style.height = '50px';
+                prevBtn.style.opacity = '0.9';
+                
+                nextBtn.style.left = '50%';
+                nextBtn.style.bottom = '20px';
+                nextBtn.style.transform = 'translateX(20px)';
+                nextBtn.style.fontSize = '1.5rem';
+                nextBtn.style.width = '50px';
+                nextBtn.style.height = '50px';
+                nextBtn.style.opacity = '0.9';
+            } else {
+                // 桌面端：按钮在左右两侧
+                prevBtn.style.left = '20px';
+                prevBtn.style.top = '50%';
+                prevBtn.style.transform = 'translateY(-50%)';
+                prevBtn.style.fontSize = '2.5rem';
+                prevBtn.style.width = '60px';
+                prevBtn.style.height = '60px';
+                
+                nextBtn.style.right = '20px';
+                nextBtn.style.top = '50%';
+                nextBtn.style.transform = 'translateY(-50%)';
+                nextBtn.style.fontSize = '2.5rem';
+                nextBtn.style.width = '60px';
+                nextBtn.style.height = '60px';
+            }
 
             prevBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -138,28 +190,19 @@ function makeStageCard(stage, region, options = {}) {
                 fullImg.src = images[currentIndex];
             });
 
-            const nextBtn = document.createElement('button');
-            nextBtn.textContent = '›';
-            nextBtn.className = 'btn btn-light position-absolute';
-            nextBtn.style.right = '10px';
-            nextBtn.style.top = '50%';
-            nextBtn.style.transform = 'translateY(-50%)';
-            nextBtn.style.fontSize = '2rem';
-            nextBtn.style.zIndex = '10000';
-
             nextBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 currentIndex = (currentIndex + 1) % images.length;
                 fullImg.src = images[currentIndex];
             });
 
-            modalContent.appendChild(prevBtn);
-            modalContent.appendChild(nextBtn);
+            modal.appendChild(prevBtn);
+            modal.appendChild(nextBtn);
         }
 
         modalContent.appendChild(fullImg);
-        modalContent.appendChild(closeBtn);
         modal.appendChild(modalContent);
+        modal.appendChild(closeBtn);
 
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
