@@ -51,8 +51,6 @@ class Octavia {
 		const levelDetail = resp_map.level_detail.data.level_detail_response.level_info;
 		const developerInfo = resp_map.developer_info.data.developer_news_response;
 
-		
-
 		const level = {
 			region: region,
 			id: stageId,

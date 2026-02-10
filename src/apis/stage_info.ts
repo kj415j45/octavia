@@ -60,6 +60,16 @@ export async function getStageInfo(region: string, stageId: string) {
 				const ret = Object.assign(JSON.parse(data as string), { status });
 				return ret;
 			}
+		} else if (error instanceof DOMException && error.name === 'TimeoutError') {
+			status.upstream = null; // 上游状态未知
+			console.warn('API request timed out. Upstream status unknown.');
+			if (cached) {
+				console.warn(`Using cache for stage ${stageId} in region ${region} due to timeout.`);
+				const data = cached.data;
+				status.cache = true;
+				const ret = Object.assign(JSON.parse(data as string), { status });
+				return ret;
+			}
 		}
 		status.upstream = false;
 		console.error('API request error:', error);
