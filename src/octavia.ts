@@ -43,12 +43,15 @@ class Octavia {
 		const data = await this.request('POST', endpoint, {}, payload);
 		const resp_map = data.data.resp_map;
 		console.debug('Received stage info:', resp_map);
+
+		if(resp_map.level_detail.retcode === StageNotFoundError.retcode){
+			throw new StageNotFoundError(`Stage with ID ${stageId} not found in region ${region}`);
+		}
+
 		const levelDetail = resp_map.level_detail.data.level_detail_response.level_info;
 		const developerInfo = resp_map.developer_info.data.developer_news_response;
 
-		if(levelDetail.retcode === StageNotFoundError.retcode){
-			throw new StageNotFoundError(`Stage with ID ${stageId} not found in region ${region}`);
-		}
+		
 
 		const level = {
 			region: region,
