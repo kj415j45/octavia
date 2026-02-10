@@ -5,7 +5,8 @@ const CACHE_TTL = 3600; // 1小时，单位：秒
 
 type RequestStatus = {
 	cache: boolean; // 是否使用了缓存
-	upstream: boolean | null; // 上游是否可用，null表示未知
+	upstream: boolean | null; // 上游是否可用，null表示未知（仅当cache为false时有效）
+	removed: boolean | null; // 是否已被下架（仅当upstream为true时有效）
 };
 
 export async function getStageInfo(region: string, stageId: string) {
@@ -17,6 +18,7 @@ export async function getStageInfo(region: string, stageId: string) {
 	const status: RequestStatus = {
 		cache: false,
 		upstream: null,
+		removed: null,
 	};
 
 	// 尝试从缓存获取
@@ -45,21 +47,23 @@ export async function getStageInfo(region: string, stageId: string) {
 	// 缓存未命中或已过期，从 API 获取数据
 	let result: any;
 	try {
-		result = await octavia.getStageInfo(region as Regions, stageId);
 		status.upstream = true;
+		result = await octavia.getStageInfo(region as Regions, stageId);
+		status.removed = false;
 	} catch (error) {
 		if (error instanceof StageNotFoundError) {
+			status.removed = true;
 			if (cached) {
+				console.warn(`Stage ${stageId} in region ${region} not found. Using cache.`);
 				const data = cached.data;
 				status.cache = true;
-				status.upstream = false;
 				Object.assign(data, { status });
 				return JSON.parse(data as string);
 			}
-		} else {
-			console.error('API request error:', error);
-			throw error;
 		}
+		status.upstream = false;
+		console.error('API request error:', error);
+		throw error;
 	}
 
 	// 提取uid（优先mys，加m前缀；否则hyl，加h前缀）
