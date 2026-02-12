@@ -82,12 +82,30 @@ function makeStageCard(stage, region, options = {}) {
     // Add preview image with click-to-fullscreen functionality
     const previewContainer = document.createElement('div');
     previewContainer.className = 'position-relative';
+    previewContainer.style.backgroundColor = '#f0f0f0';
 
     const img = document.createElement('img');
     img.src = meta.cover.images[0];
     img.className = 'card-img-top';
     img.alt = meta.name;
     img.style.cursor = 'pointer';
+
+    // Handle image load error
+    img.addEventListener('error', () => {
+        img.style.display = 'none';
+        const placeholder = document.createElement('div');
+        placeholder.className = 'justify-content-center align-items-center d-flex flex-column';
+        placeholder.style.width = '100%';
+        placeholder.style.aspectRatio = '16 / 9';
+        placeholder.innerHTML = `
+            <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+            </svg>
+            <div class="mt-2" style="font-size: 0.875rem;">图片加载失败</div>
+        `;
+        previewContainer.appendChild(placeholder);
+    });
 
     img.addEventListener('click', () => {
         const modal = document.createElement('div');
