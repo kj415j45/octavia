@@ -97,23 +97,20 @@ function showChangelogModal(versionInfo) {
     header.appendChild(closeBtn);
     modalContent.appendChild(header);
 
-    // Latest version info
-    if (versionInfo.updateInfo) {
-        const latestSection = document.createElement('div');
-        latestSection.className = 'mb-3 p-3 bg-light rounded';
-        
-        const latestTitle = document.createElement('h5');
-        latestTitle.className = 'text-primary mb-2';
-        latestTitle.innerHTML = `<span class="badge bg-primary me-2">最新</span>版本 ${versionInfo.latest}`;
-        
-        const latestContent = document.createElement('p');
-        latestContent.className = 'mb-0';
-        latestContent.innerHTML = versionInfo.updateInfo.replace(/\n/g, '<br>');
-        
-        latestSection.appendChild(latestTitle);
-        latestSection.appendChild(latestContent);
-        modalContent.appendChild(latestSection);
-    }
+    const latestSection = document.createElement('div');
+    latestSection.className = 'mb-3 p-3 bg-light rounded';
+    
+    const latestTitle = document.createElement('h5');
+    latestTitle.className = 'text-primary mb-2';
+    latestTitle.innerHTML = `<span class="badge bg-primary me-2">最新</span>版本 ${versionInfo.latest}`;
+    
+    const latestContent = document.createElement('p');
+    latestContent.className = 'mb-0';
+    latestContent.innerHTML = versionInfo.updateInfo.replace(/\n/g, '<br>');
+    
+    latestSection.appendChild(latestTitle);
+    latestSection.appendChild(latestContent);
+    modalContent.appendChild(latestSection);
 
     // Changelog list
     if (versionInfo.changelog && versionInfo.changelog.length > 0) {
