@@ -55,6 +55,106 @@ function pushStage(stage) {
     }
 }
 
+// Changelog modal
+function showChangelogModal(versionInfo) {
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100vw';
+    modal.style.height = '100vh';
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.zIndex = '9999';
+    modal.style.cursor = 'default';
+
+    const modalContent = document.createElement('div');
+    modalContent.className = 'bg-white rounded p-4';
+    modalContent.style.maxWidth = '90vw';
+    modalContent.style.maxHeight = '90vh';
+    modalContent.style.width = '600px';
+    modalContent.style.overflowY = 'auto';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'd-flex justify-content-between align-items-center mb-3 border-bottom pb-2';
+    
+    const title = document.createElement('h4');
+    title.className = 'mb-0';
+    title.textContent = '更新日志';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    modalContent.appendChild(header);
+
+    // Latest version info
+    if (versionInfo.updateInfo) {
+        const latestSection = document.createElement('div');
+        latestSection.className = 'mb-3 p-3 bg-light rounded';
+        
+        const latestTitle = document.createElement('h5');
+        latestTitle.className = 'text-primary mb-2';
+        latestTitle.innerHTML = `<span class="badge bg-primary me-2">最新</span>版本 ${versionInfo.latest}`;
+        
+        const latestContent = document.createElement('p');
+        latestContent.className = 'mb-0';
+        latestContent.innerHTML = versionInfo.updateInfo.replace(/\n/g, '<br>');
+        
+        latestSection.appendChild(latestTitle);
+        latestSection.appendChild(latestContent);
+        modalContent.appendChild(latestSection);
+    }
+
+    // Changelog list
+    if (versionInfo.changelog && versionInfo.changelog.length > 0) {
+        versionInfo.changelog.forEach((entry, index) => {
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'mb-3 pb-3';
+            if (index < versionInfo.changelog.length - 1) {
+                entryDiv.className += ' border-bottom';
+            }
+            
+            const entryTitle = document.createElement('h6');
+            entryTitle.className = 'text-secondary mb-2';
+            entryTitle.textContent = `版本 ${entry.version}`;
+            
+            const entryContent = document.createElement('p');
+            entryContent.className = 'mb-0';
+            entryContent.innerHTML = entry.content.replace(/\n/g, '<br>');
+            
+            entryDiv.appendChild(entryTitle);
+            entryDiv.appendChild(entryContent);
+            modalContent.appendChild(entryDiv);
+        });
+    } else {
+        const noChangelog = document.createElement('p');
+        noChangelog.className = 'text-muted text-center my-4';
+        noChangelog.textContent = '暂无历史版本记录';
+        modalContent.appendChild(noChangelog);
+    }
+
+    modal.appendChild(modalContent);
+
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+
+    document.body.appendChild(modal);
+}
+
 // Card creation
 function makeStageCard(stage, region, options = {}) {
     pushStage(stage);
@@ -252,15 +352,34 @@ function makeStageCard(stage, region, options = {}) {
 
     // Add name and hot score/good rate
     const titleRow = document.createElement('div');
-    titleRow.className = 'd-flex justify-content-between align-items-center';
+    titleRow.className = 'd-flex justify-content-between align-items-start';
 
     const name = document.createElement('h5');
-    name.className = 'card-title';
+    name.className = 'card-title mb-0 flex-grow-1';
     name.textContent = meta.name;
+
+    // Add version number if available (as inline element)
+    if (stage.level?.version?.latest) {
+        const versionBadge = document.createElement('small');
+        versionBadge.className = 'text-muted ms-2';
+        versionBadge.style.cursor = 'pointer';
+        versionBadge.style.fontSize = '0.7rem';
+        versionBadge.style.display = 'inline';
+        versionBadge.textContent = `v${stage.level.version.latest}`;
+        versionBadge.title = '查看更新日志';
+
+        // Add click event to show changelog modal
+        versionBadge.addEventListener('click', () => {
+            showChangelogModal(stage.level.version);
+        });
+
+        name.appendChild(versionBadge);
+    }
+
     titleRow.appendChild(name);
 
     const stats = document.createElement('small');
-    stats.className = 'text-muted';
+    stats.className = 'text-muted text-nowrap ms-2';
     stats.textContent = `${meta.hotScore} | ${meta.goodRate}`;
     titleRow.appendChild(stats);
 
