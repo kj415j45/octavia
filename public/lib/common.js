@@ -118,6 +118,7 @@ function showChangelogModal(versionInfo) {
     // Changelog list
     if (versionInfo.changelog && versionInfo.changelog.length > 0) {
         versionInfo.changelog.forEach((entry, index) => {
+            if(entry.version === versionInfo.latest) return; // Skip if same as latest version info
             const entryDiv = document.createElement('div');
             entryDiv.className = 'mb-3 pb-3';
             if (index < versionInfo.changelog.length - 1) {
