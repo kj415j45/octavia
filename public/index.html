@@ -99,6 +99,7 @@
             // Clean up
             $Stages.length = 0;
             document.getElementById('copyExcelButton')?.remove();
+            document.getElementById('generateImageButton')?.remove();
 
             const pattern = /\d+/g;
             const matches = stageIdsString.match(pattern);
@@ -154,9 +155,12 @@
                 hintsDiv.appendChild(errorDiv);
             } else {
                 // add copy as excel button before the stages
+                const buttonsContainer = document.createElement('div');
+                buttonsContainer.className = 'd-flex gap-2 mb-3 justify-content-center col-md-8 col-lg-6 d-none d-md-flex';
+                
                 const copyExcelButton = document.createElement('button');
                 copyExcelButton.id = 'copyExcelButton';
-                copyExcelButton.className = 'btn btn-success mb-3 justify-content-center col-md-6 col-lg-4 d-none d-md-block';
+                copyExcelButton.className = 'btn btn-success flex-fill';
                 copyExcelButton.textContent = '复制为 Excel 格式';
                 const copyText = $Stages.map(e => 
                     `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
@@ -168,7 +172,16 @@
                         copyExcelButton.textContent = '复制为 Excel 格式';
                     }, 2000);
                 });
-                hintsDiv.appendChild(copyExcelButton);
+                
+                const generateImageButton = document.createElement('button');
+                generateImageButton.id = 'generateImageButton';
+                generateImageButton.className = 'btn btn-primary flex-fill';
+                generateImageButton.textContent = '生成图片';
+                generateImageButton.addEventListener('click', generateStageImage);
+                
+                buttonsContainer.appendChild(copyExcelButton);
+                buttonsContainer.appendChild(generateImageButton);
+                hintsDiv.appendChild(buttonsContainer);
 
                 await loadBonusMessage(hashHex);
             }
@@ -221,11 +234,16 @@
 
     </script>
 
+
     <!-- Dev Tools -->
-    <script src="/lib/lodash.min.js" defer></script>
+    <script src="/lib/lodash.min.js" async></script>
     <script>
         console.log('%c Welcome to Octavia!\n%c Loaded stages can be found in $Stages\n%c Lodash 4.17.21 is globally available as _', 'background: #222; color: #bada55; font-size: 16px;', 'background: #222; color: #bada55; font-size: 12px;', 'background: #222; color: #bada55; font-size: 12px;');
     </script>
+
+    <!-- Image generation utilities -->
+    <script src="/lib/html2canvas.min.js" defer></script>
+    <script src="/lib/generate-image.js" defer></script>
 </body>
 
 </html>
