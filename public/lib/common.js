@@ -524,7 +524,7 @@ function makeStageCard(stage, region, options = {}) {
     levelId.textContent = `${level.id}`;
 
     const copyButton = document.createElement('button');
-    copyButton.className = 'btn btn-sm btn-outline-secondary';
+    copyButton.className = 'btn btn-sm btn-outline-secondary text-nowrap';
     copyButton.textContent = '复制';
     copyButton.addEventListener('click', () => {
         navigator.clipboard.writeText(level.id).then(() => {
