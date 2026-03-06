@@ -96,7 +96,10 @@ async function generateStageImage() {
         const tbody = document.createElement('tbody');
         stages.forEach((stage, index) => {
             const row = document.createElement('tr');
-            if (index % 2 === 1) {
+            const isRemoved = stage.status && stage.status.removed;
+            if (isRemoved) {
+                row.style.backgroundColor = '#fff5f5';
+            } else if (index % 2 === 1) {
                 row.style.backgroundColor = '#f8f9fa';
             }
 
@@ -263,6 +266,16 @@ async function generateStageImage() {
             row.appendChild(playersCell);
 
             tbody.appendChild(row);
+
+            // Apply red border to removed rows
+            if (isRemoved) {
+                Array.from(row.cells).forEach((cell, i) => {
+                    cell.style.borderTop = '2px solid #dc3545';
+                    cell.style.borderBottom = '2px solid #dc3545';
+                    if (i === 0) cell.style.borderLeft = '2px solid #dc3545';
+                    if (i === row.cells.length - 1) cell.style.borderRight = '2px solid #dc3545';
+                });
+            }
         });
         table.appendChild(tbody);
 

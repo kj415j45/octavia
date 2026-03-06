@@ -171,10 +171,9 @@ function makeStageCard(stage, region, options = {}) {
     const card = document.createElement('div');
     card.className = 'card h-100 w-100 mx-1';
     
-    // Add warning background for removed stages
+    // Add warning border for removed stages
     if (removed) {
-        card.style.background = 'repeating-linear-gradient(45deg, #ff6b6b, #ff6b6b 10px, #ffffff 10px, #ffffff 20px)';
-        card.style.opacity = '0.9';
+        card.style.border = '4px solid #dc3545';
     }
 
     // Add preview image with click-to-fullscreen functionality
