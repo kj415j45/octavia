@@ -169,7 +169,7 @@ function makeStageCard(stage, region, options = {}) {
 
     // Create card container
     const card = document.createElement('div');
-    card.className = 'card h-100 mx-1';
+    card.className = 'card h-100 w-100 mx-1';
     
     // Add warning background for removed stages
     if (removed) {
