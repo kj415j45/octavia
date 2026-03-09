@@ -32,16 +32,13 @@ function getRatingBadgeClass(goodRate) {
     return 'bg-danger';
 }
 
-async function generateStageImage() {
+async function generateStageImage(stages) {
     const button = document.getElementById('generateImageButton');
     const originalText = button.textContent;
     button.textContent = '生成中...';
     button.disabled = true;
 
     try {
-        // Use original order from $Stages
-        const stages = [...$Stages];
-
         // Create container for the table
         const container = document.createElement('div');
         container.style.position = 'absolute';

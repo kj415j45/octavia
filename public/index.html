@@ -48,6 +48,39 @@
             <!-- Hints and messages will be appended here -->
 
         </div>
+        <div id="filters" class="my-2 col-10 col-md-8 col-lg-6 d-none">
+            <!-- Filter controls -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <span class="fw-bold">过滤器</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="filterToggleBtn" onclick="toggleFilterBody()">收起</button>
+                </div>
+                <div class="card-body" id="filterBody">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold mb-1">标签</label>
+                            <div id="filterTags" class="d-flex flex-wrap gap-1"></div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold mb-1">预估时长</label>
+                            <div id="filterCategory" class="d-flex flex-wrap gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary filter-category-btn" data-value="轻量趣味">轻量趣味</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary filter-category-btn" data-value="长线游玩">长线游玩</button>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold mb-1">人数范围</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="number" id="filterPlayersMin" class="form-control form-control-sm" value="1" min="1" max="8" style="width:70px" />
+                                <span>~</span>
+                                <input type="number" id="filterPlayersMax" class="form-control form-control-sm" value="8" min="1" max="8" style="width:70px" />
+                            </div>
+                            <div id="filterPlayersWarning" class="form-text text-danger d-none">最小值不能大于最大值</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="stages" class="my-2 w-100">
             <!-- Stage cards will be appended here -->
 
@@ -95,11 +128,158 @@
             }
         }
 
+        // --- Filter state ---
+        let selectedTags = new Set();
+        let selectedCategory = null;
+
+        function getFilteredStages() {
+            const minVal = parseInt(document.getElementById('filterPlayersMin').value) || 1;
+            const maxVal = parseInt(document.getElementById('filterPlayersMax').value) || 8;
+            return $Stages.filter(stage => {
+                const meta = stage.level.meta;
+                // Tag filter (type + tags merged): OR logic, empty = all
+                if (selectedTags.size > 0) {
+                    const stageTags = [meta.type, ...(meta.tags || [])];
+                    if (!stageTags.some(t => selectedTags.has(t))) return false;
+                }
+                // Category filter: exclusive, null = all
+                if (selectedCategory) {
+                    if (meta.category !== selectedCategory) return false;
+                }
+                // Players range overlap: [filterMin, filterMax] ∩ [meta.min, meta.max]
+                if (meta.players.min > maxVal || meta.players.max < minVal) return false;
+                return true;
+            });
+        }
+
+        function toggleFilterBody() {
+            const body = document.getElementById('filterBody');
+            const btn = document.getElementById('filterToggleBtn');
+            if (body.style.display === 'none') {
+                body.style.display = '';
+                btn.textContent = '收起';
+            } else {
+                body.style.display = 'none';
+                btn.textContent = '展开';
+            }
+        }
+
+        function applyFilters() {
+            // Validate players range
+            const minInput = document.getElementById('filterPlayersMin');
+            const maxInput = document.getElementById('filterPlayersMax');
+            const warning = document.getElementById('filterPlayersWarning');
+            const minVal = parseInt(minInput.value);
+            const maxVal = parseInt(maxInput.value);
+            if (!isNaN(minVal) && !isNaN(maxVal) && minVal > maxVal) {
+                warning.classList.remove('d-none');
+            } else {
+                warning.classList.add('d-none');
+            }
+
+            const filtered = getFilteredStages();
+            const filteredIds = new Set(filtered.map(s => s.level.id));
+            $Stages.forEach(stage => {
+                const col = document.getElementById(`stage-card-${stage.level.id}`);
+                if (col) {
+                    if (filteredIds.has(stage.level.id)) {
+                        col.classList.remove('d-none');
+                    } else {
+                        col.classList.add('d-none');
+                    }
+                }
+            });
+        }
+
+        function buildFilterTags() {
+            const tagsSet = new Set();
+            $Stages.forEach(s => {
+                tagsSet.add(s.level.meta.type);
+                (s.level.meta.tags || []).forEach(t => tagsSet.add(t));
+            });
+            const container = document.getElementById('filterTags');
+            container.innerHTML = '';
+            selectedTags.clear();
+            Array.from(tagsSet).sort().forEach(tag => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-sm btn-outline-secondary filter-tag-btn';
+                btn.textContent = tag;
+                btn.dataset.value = tag;
+                btn.addEventListener('click', () => {
+                    if (selectedTags.has(tag)) {
+                        selectedTags.delete(tag);
+                        btn.classList.remove('btn-info');
+                        btn.classList.add('btn-outline-secondary');
+                    } else {
+                        selectedTags.add(tag);
+                        btn.classList.remove('btn-outline-secondary');
+                        btn.classList.add('btn-info');
+                    }
+                    applyFilters();
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        function initFilterControls() {
+            // Category buttons — mutual exclusion
+            selectedCategory = null;
+            document.querySelectorAll('.filter-category-btn').forEach(btn => {
+                btn.classList.remove('btn-info');
+                btn.classList.add('btn-outline-secondary');
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                newBtn.addEventListener('click', () => {
+                    const val = newBtn.dataset.value;
+                    if (selectedCategory === val) {
+                        // Deselect
+                        selectedCategory = null;
+                        newBtn.classList.remove('btn-info');
+                        newBtn.classList.add('btn-outline-secondary');
+                    } else {
+                        // Select this, deselect others
+                        selectedCategory = val;
+                        document.querySelectorAll('.filter-category-btn').forEach(b => {
+                            b.classList.remove('btn-info');
+                            b.classList.add('btn-outline-secondary');
+                        });
+                        newBtn.classList.remove('btn-outline-secondary');
+                        newBtn.classList.add('btn-info');
+                    }
+                    applyFilters();
+                });
+            });
+            // Players range — clone to remove old listeners, then rebind
+            const minEl = document.getElementById('filterPlayersMin');
+            const maxEl = document.getElementById('filterPlayersMax');
+            const newMin = minEl.cloneNode(true);
+            const newMax = maxEl.cloneNode(true);
+            minEl.parentNode.replaceChild(newMin, minEl);
+            maxEl.parentNode.replaceChild(newMax, maxEl);
+            newMin.value = 1;
+            newMax.value = 8;
+            newMin.addEventListener('input', applyFilters);
+            newMax.addEventListener('input', applyFilters);
+            // Reset warning
+            document.getElementById('filterPlayersWarning').classList.add('d-none');
+            // Reset toggle state to expanded
+            document.getElementById('filterBody').style.display = '';
+            document.getElementById('filterToggleBtn').textContent = '收起';
+        }
+
         async function loadStages(stageIdsString) {
+            // Disable search button
+            const submitBtn = document.querySelector('#search button[type="submit"]');
+            if(submitBtn.disabled) return;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '查询中...';
+
             // Clean up
             $Stages.length = 0;
             document.getElementById('copyExcelButton')?.remove();
             document.getElementById('generateImageButton')?.remove();
+            document.getElementById('filters').classList.add('d-none');
 
             const pattern = /\d+/g;
             const matches = stageIdsString.match(pattern);
@@ -122,6 +302,7 @@
 
                         const stageCard = makeStageCard(stage, region);
                         const col = document.createElement('div');
+                        col.id = `stage-card-${levelId}`;
                         col.className = 'col d-flex justify-content-center';
                         col.appendChild(stageCard);
 
@@ -154,6 +335,11 @@
                 errorDiv.textContent = '请输入至少一个有效的奇域ID！';
                 hintsDiv.appendChild(errorDiv);
             } else {
+                // Show filter controls
+                buildFilterTags();
+                initFilterControls();
+                document.getElementById('filters').classList.remove('d-none');
+
                 // add copy as excel button before the stages
                 const buttonsContainer = document.createElement('div');
                 buttonsContainer.className = 'd-flex gap-2 mb-3 justify-content-center col-md-8 col-lg-6 d-none d-md-flex';
@@ -162,10 +348,11 @@
                 copyExcelButton.id = 'copyExcelButton';
                 copyExcelButton.className = 'btn btn-success flex-fill';
                 copyExcelButton.textContent = '复制为 Excel 格式';
-                const copyText = $Stages.map(e => 
-                    `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
-                ).join('\n');
                 copyExcelButton.addEventListener('click', () => {
+                    const filtered = getFilteredStages();
+                    const copyText = filtered.map(e => 
+                        `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
+                    ).join('\n');
                     navigator.clipboard.writeText(copyText);
                     copyExcelButton.textContent = '已复制';
                     setTimeout(() => {
@@ -177,7 +364,9 @@
                 generateImageButton.id = 'generateImageButton';
                 generateImageButton.className = 'btn btn-primary flex-fill';
                 generateImageButton.textContent = '生成图片';
-                generateImageButton.addEventListener('click', generateStageImage);
+                generateImageButton.addEventListener('click', () => {
+                    generateStageImage(getFilteredStages());
+                });
                 
                 buttonsContainer.appendChild(copyExcelButton);
                 buttonsContainer.appendChild(generateImageButton);
@@ -185,10 +374,16 @@
 
                 await loadBonusMessage(hashHex);
             }
+
+            // Re-enable search button
+            submitBtn.disabled = false;
+            submitBtn.textContent = '查询';
         }
 
         async function handleSubmit(event){
             event.preventDefault();
+            const submitBtn = document.querySelector('#search button[type="submit"]');
+            if (submitBtn.disabled) return;
             const input = document.getElementById('stageIdsInput').value;
             const hintsDiv = document.getElementById('hints');
             if(input.length <= 20){
