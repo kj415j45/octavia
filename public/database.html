@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>奇域数据库 - Octavia</title>
+    <meta name="name" itemprop="name" content="奇域数据库 - Octavia" />
+    <meta name="description" itemprop="description" content="Octavia 奇域数据库，支持按名称搜索已缓存的千星奇域。" />
+    <meta name="keywords" content="Octavia, 奇域数据库, 千星奇域, 原神, 数据库搜索" />
+    <link rel="icon" href="/favicon.ico" />
+
+    <link rel="stylesheet" href="/lib/bootstrap.min.css" />
+    <link rel="stylesheet" href="/lib/font.css" />
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+    <header>
+        <nav class="navbar bg-body-tertiary">
+            <div class="container-fluid">
+                <a href="/" class="navbar-brand mb-0 h1">欧科塔维亚</a>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/index.html" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">奇域查询</a>
+                    <span class="text-muted">奇域数据库</span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div id="body" class="container-fluid d-flex flex-column align-items-center mt-4 mb-auto">
+        <div class="text-center my-4 col-10 col-md-8 col-lg-6">
+            <form id="searchForm" class="row g-2 align-items-center">
+                <div class="col-8 col-md-10">
+                    <input type="text" id="keywordInput" class="form-control" maxlength="100" placeholder="输入奇域名称，例如：迷城、跑酷、解谜" />
+                </div>
+                <div class="col-4 col-md-2">
+                    <button type="submit" id="searchButton" class="btn btn-primary w-100" disabled>搜索</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="my-2 col-10 col-md-8 col-lg-6 d-flex justify-content-center gap-4 text-muted d-none js-pagination-controls">
+            <div>本页结果 <strong class="text-body js-result-count">0</strong></div>
+            <div>当前页 <strong class="text-body js-page-number">0</strong></div>
+        </div>
+
+        <div class="my-2 col-10 col-md-8 col-lg-6 d-flex justify-content-center gap-2 d-none js-pagination-controls">
+            <button class="btn btn-outline-secondary js-prev-page-button" type="button">上一页</button>
+            <button class="btn btn-outline-secondary js-next-page-button" type="button">下一页</button>
+        </div>
+
+        <div id="resultsWrapper" class="my-2 w-100">
+            <div id="loadingState" class="text-center py-5 d-none">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </div>
+            <div id="emptyState" class="text-center py-5 px-3 d-none">
+                <h3 id="emptyStateTitle" class="h5 mb-2">没有找到匹配的奇域</h3>
+                <p id="emptyStateMessage" class="mb-0 text-muted">试试更短的关键词再搜索。</p>
+            </div>
+            <div id="results" class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4"></div>
+        </div>
+
+        <div class="my-2 col-10 col-md-8 col-lg-6 d-flex justify-content-center gap-2 d-none js-pagination-controls">
+            <button class="btn btn-outline-secondary js-prev-page-button" type="button">上一页</button>
+            <button class="btn btn-outline-secondary js-next-page-button" type="button">下一页</button>
+        </div>
+
+        <div class="my-2 col-10 col-md-8 col-lg-6 d-flex justify-content-center gap-4 text-muted d-none js-pagination-controls">
+            <div>本页结果 <strong class="text-body js-result-count">0</strong></div>
+            <div>当前页 <strong class="text-body js-page-number">0</strong></div>
+        </div>
+    </div>
+
+    <footer class="mt-4">
+        <p class="text-center">Source Code is available on <a href="https://github.com/kj415j45/octavia">GitHub</a></p>
+        <p class="text-center">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
+    </footer>
+
+    <script src="/lib/bootstrap.bundle.min.js"></script>
+    <script src="/lib/common.js"></script>
+    <script>
+        const pageState = {
+            query: '',
+            page: 1,
+            nextPage: false,
+        };
+
+        const keywordInput = document.getElementById('keywordInput');
+        const searchButton = document.getElementById('searchButton');
+        const emptyState = document.getElementById('emptyState');
+        const emptyStateTitle = document.getElementById('emptyStateTitle');
+        const emptyStateMessage = document.getElementById('emptyStateMessage');
+        const resultCountElements = document.querySelectorAll('.js-result-count');
+        const pageNumberElements = document.querySelectorAll('.js-page-number');
+        const paginationControls = document.querySelectorAll('.js-pagination-controls');
+        const prevPageButtons = document.querySelectorAll('.js-prev-page-button');
+        const nextPageButtons = document.querySelectorAll('.js-next-page-button');
+
+        function updatePageIndicators(resultCount, pageNumber) {
+            resultCountElements.forEach((element) => {
+                element.textContent = `${resultCount}`;
+            });
+            pageNumberElements.forEach((element) => {
+                element.textContent = `${pageNumber}`;
+            });
+        }
+
+        function setEmptyState(title, message) {
+            emptyStateTitle.textContent = title;
+            emptyStateMessage.textContent = message;
+        }
+
+        function togglePaginationControls(visible) {
+            paginationControls.forEach((element) => {
+                element.classList.toggle('d-none', !visible);
+            });
+        }
+
+        function syncUrl() {
+            const url = new URL(window.location.href);
+            if (!pageState.query) {
+                url.searchParams.delete('q');
+                url.searchParams.delete('page');
+            } else {
+                url.searchParams.set('q', pageState.query);
+                if (pageState.page > 1) {
+                    url.searchParams.set('page', `${pageState.page}`);
+                } else {
+                    url.searchParams.delete('page');
+                }
+            }
+            window.history.replaceState(null, '', `${url.pathname}${url.search}`);
+        }
+
+        function resetView() {
+            pageState.page = 1;
+            pageState.nextPage = false;
+            $Stages.length = 0;
+            document.getElementById('results').innerHTML = '';
+            emptyState.classList.add('d-none');
+            updatePageIndicators(0, 0);
+            setEmptyState('没有找到匹配的奇域', '试试更短的关键词再搜索。');
+            togglePaginationControls(false);
+            prevPageButtons.forEach((button) => {
+                button.disabled = true;
+            });
+            nextPageButtons.forEach((button) => {
+                button.disabled = true;
+            });
+            syncUrl();
+        }
+
+        function updateSearchButtonState() {
+            searchButton.disabled = !keywordInput.value.trim();
+        }
+
+        function setLoading(loading) {
+            document.getElementById('loadingState').classList.toggle('d-none', !loading);
+            searchButton.disabled = loading || !keywordInput.value.trim();
+            prevPageButtons.forEach((button) => {
+                button.disabled = loading || pageState.page <= 1;
+            });
+            nextPageButtons.forEach((button) => {
+                button.disabled = loading || !pageState.nextPage;
+            });
+        }
+
+        async function renderResults(results) {
+            $Stages.length = 0;
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (!results.length) {
+                emptyState.classList.remove('d-none');
+                togglePaginationControls(false);
+                updatePageIndicators(0, pageState.page > 1 ? pageState.page : 0);
+                return;
+            }
+
+            emptyState.classList.add('d-none');
+            const stageList = await Promise.all(results.map(async (item) => {
+                try {
+                    return await getStageInfo(item.region, item.stage_id);
+                } catch (error) {
+                    console.error(`Failed to load stage ${item.stage_id} from ${item.region}:`, error);
+                    return null;
+                }
+            }));
+
+            const validStages = stageList.filter((stage) => stage && stage.level);
+            if (!validStages.length) {
+                setEmptyState('奇域加载失败', '搜索结果存在，但对应奇域详情暂时无法读取。');
+                emptyState.classList.remove('d-none');
+                togglePaginationControls(false);
+                updatePageIndicators(0, pageState.page > 1 ? pageState.page : 0);
+                return;
+            }
+
+            setEmptyState('没有找到匹配的奇域', '试试更短的关键词再搜索。');
+            togglePaginationControls(true);
+            validStages.forEach((stage, index) => {
+                const col = document.createElement('div');
+                col.className = 'col result-stage-wrap';
+                col.style.animationDelay = `${index * 0.04}s`;
+
+                const stageCard = makeStageCard(stage, stage.level.region, { showRegion: true, linkToPlatform: true });
+                col.appendChild(stageCard);
+                resultsDiv.appendChild(col);
+            });
+        }
+
+        async function loadPage(page = 1) {
+            if (!pageState.query) {
+                resetView();
+                return;
+            }
+            pageState.page = page;
+            syncUrl();
+            setLoading(true);
+
+            try {
+                const data = await searchStageDatabase(pageState.query, pageState.page);
+                pageState.nextPage = !!data.next_page;
+                updatePageIndicators(data.results.length, data.results.length > 0 || pageState.page > 1 ? pageState.page : 0);
+                await renderResults(data.results || []);
+            } catch (error) {
+                console.error('Failed to search stage database:', error);
+                document.getElementById('results').innerHTML = '';
+                setEmptyState('加载失败', error?.message === 'Search keyword is required' ? '请输入有效关键词后再搜索。' : '请稍后重试。');
+                emptyState.classList.remove('d-none');
+                pageState.nextPage = false;
+                togglePaginationControls(false);
+                updatePageIndicators(0, 0);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        document.getElementById('searchForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            pageState.query = keywordInput.value.trim();
+            if (!pageState.query) {
+                resetView();
+                return;
+            }
+            await loadPage(1);
+        });
+
+        keywordInput.addEventListener('input', () => {
+            updateSearchButtonState();
+            if (!keywordInput.value.trim()) {
+                pageState.query = '';
+                resetView();
+            }
+        });
+
+        prevPageButtons.forEach((button) => {
+            button.addEventListener('click', async () => {
+                if (pageState.page > 1) {
+                    await loadPage(pageState.page - 1);
+                }
+            });
+        });
+
+        nextPageButtons.forEach((button) => {
+            button.addEventListener('click', async () => {
+                if (pageState.nextPage) {
+                    await loadPage(pageState.page + 1);
+                }
+            });
+        });
+
+        async function initPage() {
+            await getRegionMap();
+            const params = new URLSearchParams(window.location.search);
+            const initialQuery = (params.get('q') || '').trim();
+            const initialPage = Number.parseInt(params.get('page') || '1', 10);
+
+            if (initialQuery) {
+                keywordInput.value = initialQuery;
+                pageState.query = initialQuery;
+                updateSearchButtonState();
+                await loadPage(Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1);
+                return;
+            }
+
+            updateSearchButtonState();
+            resetView();
+        }
+
+        initPage();
+    </script>
+</body>
+
+</html>

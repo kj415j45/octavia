@@ -9,6 +9,14 @@ type RequestStatus = {
 	removed: boolean | null; // 是否已被下架（仅当upstream为true时有效）
 };
 
+function getCachedStageTextFields(result: any) {
+	return {
+		name: result?.level?.meta?.name || null,
+		intro: result?.level?.meta?.intro || null,
+		description: result?.level?.meta?.description || null,
+	};
+}
+
 export async function getStageInfo(region: string, stageId: string) {
 	const validRegions = Object.values(Regions);
 	if (!validRegions.includes(region as Regions)) {
@@ -22,7 +30,7 @@ export async function getStageInfo(region: string, stageId: string) {
 	};
 
 	// 尝试从缓存获取
-	var cached: any;
+	let cached: any;
 	try {
 		const db = Global.getEnv().DB;
 		cached = await db
@@ -92,10 +100,11 @@ export async function getStageInfo(region: string, stageId: string) {
 		const now = Math.floor(Date.now() / 1000);
 		const createdAt = cached ? Math.floor(cached.created_at as number) : now;
 		const expiresAt = now + CACHE_TTL;
+		const { name, intro, description } = getCachedStageTextFields(result);
 
 		await db
-			.prepare('INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, data, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)')
-			.bind(region, stageId, uid, JSON.stringify(result), createdAt, expiresAt)
+			.prepare('INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, name, intro, description, data, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+			.bind(region, stageId, uid, name, intro, description, JSON.stringify(result), createdAt, expiresAt)
 			.run();
 
 		// 更新作者信息表
@@ -104,13 +113,13 @@ export async function getStageInfo(region: string, stageId: string) {
 			// 优先使用对应平台的信息
 			const platformInfo = uid.startsWith('m') ? author.mys : author.hyl;
 			const avatar = platformInfo?.avatar || author.game?.avatar || octavia.getDefaultAvatar();
-			const name = platformInfo?.name || null;
+			const authorName = platformInfo?.name || null;
 			const ingameName = author.game?.name || null;
 			const pendant = uid.startsWith('h') ? author.hyl?.pendant : null;
 
 			await db
 				.prepare('INSERT OR REPLACE INTO author (uid, avatar, name, ingame_name, pendant) VALUES (?, ?, ?, ?, ?)')
-				.bind(uid, avatar, name, ingameName, pendant)
+				.bind(uid, avatar, authorName, ingameName, pendant)
 				.run();
 		}
 	} catch (error) {

@@ -48,6 +48,19 @@ async function getAuthorInfo(uid) {
     return await response.json();
 }
 
+async function searchStageDatabase(keyword = '', page = 1) {
+    const params = new URLSearchParams({
+        q: keyword,
+        page: `${page}`,
+    });
+    const response = await fetch(`${baseUrl}/api/search/stage?${params.toString()}`);
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.error || `Search request failed with status ${response.status}`);
+    }
+    return data;
+}
+
 // Stage management
 function pushStage(stage) {
     if (!$Stages.find(s => s.level.id === stage.level.id)) {

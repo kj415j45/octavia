@@ -1,4 +1,5 @@
 import { getStageInfo } from './apis/stage_info';
+import { searchStages } from './apis/stage_search';
 import { getStatusData } from './apis/status';
 import { getAuthorInfo } from './apis/author';
 import { Global } from './global';
@@ -23,6 +24,15 @@ export default {
 						const region = url.searchParams.get('region') || '';
 						const stageId = url.searchParams.get('id') || '';
 						const data = await getStageInfo(region, stageId);
+						return JSONResponse(data);
+					}
+					case 'search/stage': {
+						const keyword = url.searchParams.get('q') || '';
+						if (!keyword.trim()) {
+							return JSONResponse({ error: 'Search keyword is required' }, { status: 400 });
+						}
+						const page = url.searchParams.get('page');
+						const data = await searchStages(keyword, page);
 						return JSONResponse(data);
 					}
 					case 'bonus': {
