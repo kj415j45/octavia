@@ -271,6 +271,58 @@
             document.getElementById('filterToggleBtn').textContent = '收起';
         }
 
+        function removeLoadingProgress() {
+            document.getElementById('loadingProgress')?.remove();
+        }
+
+        function createLoadingProgress(total) {
+            removeLoadingProgress();
+            if (total <= 0) {
+                return null;
+            }
+
+            const hintsDiv = document.getElementById('hints');
+            const wrapper = document.createElement('div');
+            wrapper.id = 'loadingProgress';
+            wrapper.className = 'col-12';
+            wrapper.innerHTML = `
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2 small text-muted">
+                            <span id="loadingProgressLabel">查询进度 0/${total}</span>
+                            <span id="loadingProgressPercent">0%</span>
+                        </div>
+                        <div class="progress" role="progressbar" aria-label="奇域查询进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                            <div id="loadingProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            hintsDiv.appendChild(wrapper);
+
+            return {
+                total,
+                label: wrapper.querySelector('#loadingProgressLabel'),
+                percent: wrapper.querySelector('#loadingProgressPercent'),
+                bar: wrapper.querySelector('#loadingProgressBar'),
+                progress: wrapper.querySelector('.progress')
+            };
+        }
+
+        function updateLoadingProgress(progressState, completed) {
+            if (!progressState) {
+                return;
+            }
+
+            const percent = Math.round((completed / progressState.total) * 100);
+            progressState.label.textContent = completed >= progressState.total
+                ? `查询完成 ${completed}/${progressState.total}`
+                : `查询进度 ${completed}/${progressState.total}`;
+            progressState.percent.textContent = `${percent}%`;
+            progressState.bar.style.width = `${percent}%`;
+            progressState.progress.setAttribute('aria-valuenow', percent.toString());
+        }
+
         async function loadStages(stageIdsString) {
             // Disable search button
             const submitBtn = document.querySelector('#search button[type="submit"]');
@@ -278,109 +330,119 @@
             submitBtn.disabled = true;
             submitBtn.textContent = '查询中...';
 
+            const hintsDiv = document.getElementById('hints');
+
             // Clean up
             $Stages.length = 0;
             document.getElementById('copyExcelButton')?.remove();
             document.getElementById('generateImageButton')?.remove();
             document.getElementById('filters').classList.add('d-none');
+            hintsDiv.innerHTML = '';
+            removeLoadingProgress();
 
-            const pattern = /\d+/g;
+            const pattern = /\d{5,}/g;
             const matches = stageIdsString.match(pattern);
             let stageIds = matches || [];
 
             stageIds = [...new Set(stageIds)];
+            const progressState = createLoadingProgress(stageIds.length);
 
             const stageIdInput = document.getElementById('stageIdsInput');
             const stagesDiv = document.getElementById('stages');
             stagesDiv.innerHTML = ''; // Clear previous content
 
-            const validStageIds = []
+            const validStageIds = [];
+            let processedCount = 0;
 
-            for (const id of stageIds) {
-                try {
-                    const stage = await getStageInfo(region, id);
-                    if (stage && stage.level) {
-                        const levelId = stage.level.id;
-                        validStageIds.push(levelId);
+            try {
+                for (const id of stageIds) {
+                    try {
+                        const stage = await getStageInfo(region, id);
+                        if (stage && stage.level) {
+                            const levelId = stage.level.id;
+                            validStageIds.push(levelId);
 
-                        const stageCard = makeStageCard(stage, region);
-                        const col = document.createElement('div');
-                        col.id = `stage-card-${levelId}`;
-                        col.className = 'col d-flex justify-content-center';
-                        col.appendChild(stageCard);
+                            const stageCard = makeStageCard(stage, region);
+                            const col = document.createElement('div');
+                            col.id = `stage-card-${levelId}`;
+                            col.className = 'col d-flex justify-content-center';
+                            col.appendChild(stageCard);
 
-                        let masonryContainer = stagesDiv.querySelector('.row');
-                        if (!masonryContainer) {
-                            masonryContainer = document.createElement('div');
-                            masonryContainer.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4';
-                            stagesDiv.appendChild(masonryContainer);
+                            let masonryContainer = stagesDiv.querySelector('.row');
+                            if (!masonryContainer) {
+                                masonryContainer = document.createElement('div');
+                                masonryContainer.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4';
+                                stagesDiv.appendChild(masonryContainer);
+                            }
+                            masonryContainer.appendChild(col);
                         }
-                        masonryContainer.appendChild(col);
+                    } catch (err) {
+                        console.error(`Failed to load stage with ID ${id}:`, err);
+                    } finally {
+                        processedCount += 1;
+                        updateLoadingProgress(progressState, processedCount);
                     }
-                } catch (err) {
-                    console.error(`Failed to load stage with ID ${id}:`, err);
                 }
+
+                const csText = validStageIds.join(', ');
+                stageIdInput.value = csText;
+                window.history.replaceState(null, '', `?stages=${csText.replace(/ /g, '')}&region=${region}`);
+                const sha256Hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(csText));
+                const hashArray = Array.from(new Uint8Array(sha256Hash));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                console.log(`SHA-256 Hash of stage IDs: ${hashHex}`);
+
+                hintsDiv.innerHTML = '';
+                if (!stagesDiv.querySelector('.row')) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'alert alert-danger';
+                    errorDiv.textContent = '请输入至少一个有效的奇域ID！';
+                    hintsDiv.appendChild(errorDiv);
+                } else {
+                    // Show filter controls
+                    buildFilterTags();
+                    initFilterControls();
+                    document.getElementById('filters').classList.remove('d-none');
+
+                    // add copy as excel button before the stages
+                    const buttonsContainer = document.createElement('div');
+                    buttonsContainer.className = 'd-flex gap-2 mb-3 justify-content-center col-md-8 col-lg-6 d-none d-md-flex';
+                    
+                    const copyExcelButton = document.createElement('button');
+                    copyExcelButton.id = 'copyExcelButton';
+                    copyExcelButton.className = 'btn btn-success flex-fill';
+                    copyExcelButton.textContent = '复制为 Excel 格式';
+                    copyExcelButton.addEventListener('click', () => {
+                        const filtered = getFilteredStages();
+                        const copyText = filtered.map(e => 
+                            `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
+                        ).join('\n');
+                        navigator.clipboard.writeText(copyText);
+                        copyExcelButton.textContent = '已复制';
+                        setTimeout(() => {
+                            copyExcelButton.textContent = '复制为 Excel 格式';
+                        }, 2000);
+                    });
+                    
+                    const generateImageButton = document.createElement('button');
+                    generateImageButton.id = 'generateImageButton';
+                    generateImageButton.className = 'btn btn-primary flex-fill';
+                    generateImageButton.textContent = '生成图片';
+                    generateImageButton.addEventListener('click', () => {
+                        generateStageImage(getFilteredStages());
+                    });
+                    
+                    buttonsContainer.appendChild(copyExcelButton);
+                    buttonsContainer.appendChild(generateImageButton);
+                    hintsDiv.appendChild(buttonsContainer);
+
+                    await loadBonusMessage(hashHex);
+                }
+            } finally {
+                removeLoadingProgress();
+                submitBtn.disabled = false;
+                submitBtn.textContent = '查询';
             }
-
-            const csText = validStageIds.join(', ');
-            stageIdInput.value = csText;
-            window.history.replaceState(null, '', `?stages=${csText.replace(/ /g, '')}&region=${region}`);
-            const sha256Hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(csText));
-            const hashArray = Array.from(new Uint8Array(sha256Hash));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            console.log(`SHA-256 Hash of stage IDs: ${hashHex}`);
-
-            const hintsDiv = document.getElementById('hints');
-            hintsDiv.innerHTML = '';
-            if (!stagesDiv.querySelector('.row')) {
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'alert alert-danger';
-                errorDiv.textContent = '请输入至少一个有效的奇域ID！';
-                hintsDiv.appendChild(errorDiv);
-            } else {
-                // Show filter controls
-                buildFilterTags();
-                initFilterControls();
-                document.getElementById('filters').classList.remove('d-none');
-
-                // add copy as excel button before the stages
-                const buttonsContainer = document.createElement('div');
-                buttonsContainer.className = 'd-flex gap-2 mb-3 justify-content-center col-md-8 col-lg-6 d-none d-md-flex';
-                
-                const copyExcelButton = document.createElement('button');
-                copyExcelButton.id = 'copyExcelButton';
-                copyExcelButton.className = 'btn btn-success flex-fill';
-                copyExcelButton.textContent = '复制为 Excel 格式';
-                copyExcelButton.addEventListener('click', () => {
-                    const filtered = getFilteredStages();
-                    const copyText = filtered.map(e => 
-                        `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
-                    ).join('\n');
-                    navigator.clipboard.writeText(copyText);
-                    copyExcelButton.textContent = '已复制';
-                    setTimeout(() => {
-                        copyExcelButton.textContent = '复制为 Excel 格式';
-                    }, 2000);
-                });
-                
-                const generateImageButton = document.createElement('button');
-                generateImageButton.id = 'generateImageButton';
-                generateImageButton.className = 'btn btn-primary flex-fill';
-                generateImageButton.textContent = '生成图片';
-                generateImageButton.addEventListener('click', () => {
-                    generateStageImage(getFilteredStages());
-                });
-                
-                buttonsContainer.appendChild(copyExcelButton);
-                buttonsContainer.appendChild(generateImageButton);
-                hintsDiv.appendChild(buttonsContainer);
-
-                await loadBonusMessage(hashHex);
-            }
-
-            // Re-enable search button
-            submitBtn.disabled = false;
-            submitBtn.textContent = '查询';
         }
 
         async function handleSubmit(event){
