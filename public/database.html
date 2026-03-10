@@ -205,7 +205,7 @@
                 col.className = 'col result-stage-wrap';
                 col.style.animationDelay = `${index * 0.04}s`;
 
-                const stageCard = makeStageCard(stage, stage.level.region, { showRegion: true, linkToPlatform: true });
+                const stageCard = makeStageCard(stage, { showRegion: true });
                 col.appendChild(stageCard);
                 resultsDiv.appendChild(col);
             });

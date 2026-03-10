@@ -1,6 +1,7 @@
 // Common utilities for Octavia
 
 const baseUrl = "";
+const AUTO_DETECT_REGION = 'auto';
 let regionMap = {};
 let $Stages = [];
 
@@ -27,8 +28,16 @@ async function populateRegionDropdown(currentRegion = 'cn_gf01') {
         select.appendChild(option);
     }
 
+    const autoDetectOption = document.createElement('option');
+    autoDetectOption.value = AUTO_DETECT_REGION;
+    autoDetectOption.textContent = '自动检测';
+    select.appendChild(autoDetectOption);
+
     const regionFromUrl = new URLSearchParams(window.location.search).get('region');
-    if (regionFromUrl && regionMap[regionFromUrl]) {
+    if (regionFromUrl === AUTO_DETECT_REGION) {
+        select.value = AUTO_DETECT_REGION;
+        return AUTO_DETECT_REGION;
+    } else if (regionFromUrl && regionMap[regionFromUrl]) {
         select.value = regionFromUrl;
         return regionFromUrl;
     } else {
@@ -61,9 +70,13 @@ async function searchStageDatabase(keyword = '', page = 1) {
     return data;
 }
 
-// Stage management
+function getStageKey(stage) {
+    return `${stage.level.region}:${stage.level.id}`;
+}
+
 function pushStage(stage) {
-    if (!$Stages.find(s => s.level.id === stage.level.id)) {
+    const stageKey = getStageKey(stage);
+    if (!$Stages.find(s => getStageKey(s) === stageKey)) {
         $Stages.push(stage);
     }
 }
@@ -167,13 +180,14 @@ function showChangelogModal(versionInfo) {
 }
 
 // Card creation
-function makeStageCard(stage, region, options = {}) {
+function makeStageCard(stage, options = {}) {
     pushStage(stage);
     const level = stage.level;
     const meta = level.meta;
     const author = stage.author;
     const status = stage.status;
     const removed = status.removed;
+    const region = level.region;
     
     const showRegion = options.showRegion || false;
     const linkToPlatform = options.linkToPlatform || false;
@@ -530,7 +544,7 @@ function makeStageCard(stage, region, options = {}) {
 
     const levelId = document.createElement('a');
     levelId.className = 'me-2';
-    levelId.href = `${stageEndpointBase}?id=${level.id}&region=${region}`;
+    levelId.href = `${stageEndpointBase}?id=${level.id}&region=${level.region}`;
     levelId.target = '_blank';
     levelId.rel = 'noopener';
     levelId.textContent = `${level.id}`;
@@ -565,7 +579,7 @@ function makeStageCard(stage, region, options = {}) {
         const regionBadge = document.createElement('div');
         regionBadge.className = 'card-footer bg-info text-white text-center py-1';
         regionBadge.style.fontSize = '0.875rem';
-        regionBadge.textContent = regionMap[region]?.name || region;
+        regionBadge.textContent = regionMap[level.region]?.name || level.region;
         card.appendChild(regionBadge);
     }
 

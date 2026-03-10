@@ -32,11 +32,13 @@ function getRatingBadgeClass(goodRate) {
     return 'bg-danger';
 }
 
-async function generateStageImage(stages) {
+async function generateStageImage(stages, options = {}) {
     const button = document.getElementById('generateImageButton');
     const originalText = button.textContent;
     button.textContent = '生成中...';
     button.disabled = true;
+
+    const showRegion = options.showRegion === true;
 
     try {
         // Create container for the table
@@ -76,7 +78,8 @@ async function generateStageImage(stages) {
         // Create table header
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
-        ['ID', '作者', '奇域名称', '热度', '好评率', '人数'].forEach(headerText => {
+        const headers = ['ID', '作者', '奇域名称', '热度', '好评率', '人数'];
+        headers.forEach(headerText => {
             const th = document.createElement('th');
             th.textContent = headerText;
             th.style.padding = '12px 8px';
@@ -102,9 +105,28 @@ async function generateStageImage(stages) {
 
             // ID column
             const idCell = document.createElement('td');
-            idCell.textContent = stage.level.id;
             idCell.style.padding = '12px 8px';
             idCell.style.borderBottom = '1px solid #dee2e6';
+
+            if (showRegion) {
+                const regionText = regionMap[stage.level.region]?.name || stage.level.region || '未知';
+
+                const regionLine = document.createElement('div');
+                regionLine.textContent = regionText;
+                regionLine.style.fontSize = '12px';
+                regionLine.style.color = '#666';
+                regionLine.style.marginBottom = '2px';
+
+                const idLine = document.createElement('div');
+                idLine.textContent = stage.level.id;
+                idLine.style.fontWeight = '600';
+
+                idCell.appendChild(regionLine);
+                idCell.appendChild(idLine);
+            } else {
+                idCell.textContent = stage.level.id;
+            }
+
             row.appendChild(idCell);
 
             // Author column

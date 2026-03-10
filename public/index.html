@@ -39,6 +39,7 @@
                 class="row g-2">
                 <div class="col-8 col-md-10">
                     <input type="text" id="stageIdsInput" class="form-control" placeholder="输入奇域ID，支持自动识别" />
+                    <div id="stageIdsValidation" class="form-text text-danger text-start d-none"></div>
                 </div>
 
                 <div class="col-4 col-md-2">
@@ -102,15 +103,97 @@
         var region = 'cn_gf01';
 
         const regionSelect = document.getElementById('regionSelect');
+        const stageIdsInput = document.getElementById('stageIdsInput');
+        const stageIdsValidation = document.getElementById('stageIdsValidation');
+        const submitBtn = document.querySelector('#search button[type="submit"]');
+        let isSearching = false;
+
         regionSelect.addEventListener('change', (event) => {
             updateRegion(event.target.value);
         });
 
+        stageIdsInput.addEventListener('input', () => {
+            syncSearchInputState();
+        });
+
+        function isAutoDetectMode() {
+            return region === AUTO_DETECT_REGION;
+        }
+
+        function getSearchRegions() {
+            return Object.keys(regionMap).filter(regionId => regionId !== AUTO_DETECT_REGION);
+        }
+
+        function getStageCardElementId(stage, fallbackRegion = '') {
+            const stageKey = getStageKey(stage, fallbackRegion).replace(/[^a-zA-Z0-9_-]/g, '-');
+            return `stage-card-${stageKey}`;
+        }
+
+        function getSearchValidationState() {
+            if (!isAutoDetectMode()) {
+                return { disableSubmit: false, message: '' };
+            }
+
+            const rawValue = stageIdsInput.value;
+            const trimmedValue = rawValue.trim();
+
+            if (!trimmedValue) {
+                return {
+                    disableSubmit: true,
+                    message: '自动检测模式仅支持输入 1 个纯数字奇域 ID。'
+                };
+            }
+
+            if (/^\d+$/.test(trimmedValue)) {
+                return { disableSubmit: false, message: '' };
+            }
+
+            const matchedIds = trimmedValue.match(/\d+/g) || [];
+            if (matchedIds.length > 1) {
+                return {
+                    disableSubmit: true,
+                    message: '自动检测模式一次只能查询 1 个奇域 ID。'
+                };
+            }
+
+            return {
+                disableSubmit: true,
+                message: '自动检测模式仅支持输入数字。'
+            };
+        }
+
+        function syncSearchInputState() {
+            const validationState = getSearchValidationState();
+
+            if (isAutoDetectMode()) {
+                stageIdsInput.placeholder = '输入单个纯数字奇域ID';
+                stageIdsInput.inputMode = 'numeric';
+                stageIdsInput.autocomplete = 'off';
+            } else {
+                stageIdsInput.placeholder = '输入奇域ID，支持自动识别';
+                stageIdsInput.inputMode = 'text';
+            }
+
+            if (validationState.message) {
+                stageIdsValidation.textContent = validationState.message;
+                stageIdsValidation.classList.remove('d-none');
+            } else {
+                stageIdsValidation.textContent = '';
+                stageIdsValidation.classList.add('d-none');
+            }
+
+            submitBtn.disabled = isSearching || validationState.disableSubmit;
+            if (!isSearching) {
+                submitBtn.textContent = '查询';
+            }
+        }
+
         function updateRegion(newRegion) {
-            if (regionMap[newRegion]) {
+            if (newRegion === AUTO_DETECT_REGION || regionMap[newRegion]) {
                 region = newRegion;
                 regionSelect.value = newRegion;
                 console.log(`Region updated to: ${region}`);
+                syncSearchInputState();
             } else {
                 console.warn(`Region ${newRegion} not found in regionMap.`);
             }
@@ -122,12 +205,18 @@
                 region = initialRegion;
                 updateRegion(region);
             }
-            
+
             // Check URL params after initialization
             const query = new URLSearchParams(window.location.search);
             const stageIdsParam = query.get('stages');
             if (stageIdsParam) {
-                loadStages(stageIdsParam);
+                stageIdsInput.value = stageIdsParam;
+                syncSearchInputState();
+                if (!getSearchValidationState().disableSubmit) {
+                    loadStages(stageIdsParam);
+                }
+            } else {
+                syncSearchInputState();
             }
         }
 
@@ -181,11 +270,11 @@
             }
 
             const filtered = getFilteredStages();
-            const filteredIds = new Set(filtered.map(s => s.level.id));
+            const filteredIds = new Set(filtered.map(stage => getStageKey(stage)));
             $Stages.forEach(stage => {
-                const col = document.getElementById(`stage-card-${stage.level.id}`);
+                const col = document.getElementById(getStageCardElementId(stage));
                 if (col) {
-                    if (filteredIds.has(stage.level.id)) {
+                    if (filteredIds.has(getStageKey(stage))) {
                         col.classList.remove('d-none');
                     } else {
                         col.classList.add('d-none');
@@ -324,13 +413,20 @@
         }
 
         async function loadStages(stageIdsString) {
-            // Disable search button
-            const submitBtn = document.querySelector('#search button[type="submit"]');
-            if(submitBtn.disabled) return;
+            const validationState = getSearchValidationState();
+            if (validationState.disableSubmit) {
+                syncSearchInputState();
+                return;
+            }
+
+            if (isSearching) return;
+            isSearching = true;
             submitBtn.disabled = true;
             submitBtn.textContent = '查询中...';
 
             const hintsDiv = document.getElementById('hints');
+            const autoDetectMode = isAutoDetectMode();
+            const searchRegions = autoDetectMode ? getSearchRegions() : [region];
 
             // Clean up
             $Stages.length = 0;
@@ -345,9 +441,8 @@
             let stageIds = matches || [];
 
             stageIds = [...new Set(stageIds)];
-            const progressState = createLoadingProgress(stageIds.length);
+            const progressState = createLoadingProgress(stageIds.length * searchRegions.length);
 
-            const stageIdInput = document.getElementById('stageIdsInput');
             const stagesDiv = document.getElementById('stages');
             stagesDiv.innerHTML = ''; // Clear previous content
 
@@ -356,36 +451,74 @@
 
             try {
                 for (const id of stageIds) {
-                    try {
-                        const stage = await getStageInfo(region, id);
-                        if (stage && stage.level) {
-                            const levelId = stage.level.id;
-                            validStageIds.push(levelId);
-
-                            const stageCard = makeStageCard(stage, region);
-                            const col = document.createElement('div');
-                            col.id = `stage-card-${levelId}`;
-                            col.className = 'col d-flex justify-content-center';
-                            col.appendChild(stageCard);
-
-                            let masonryContainer = stagesDiv.querySelector('.row');
-                            if (!masonryContainer) {
-                                masonryContainer = document.createElement('div');
-                                masonryContainer.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4';
-                                stagesDiv.appendChild(masonryContainer);
+                    if (autoDetectMode) {
+                        const stageResults = await Promise.all(searchRegions.map(async (targetRegion) => {
+                            try {
+                                const stage = await getStageInfo(targetRegion, id);
+                                return { stage, targetRegion };
+                            } catch (err) {
+                                console.error(`Failed to load stage with ID ${id} from ${targetRegion}:`, err);
+                                return { stage: null, targetRegion };
+                            } finally {
+                                processedCount += 1;
+                                updateLoadingProgress(progressState, processedCount);
                             }
-                            masonryContainer.appendChild(col);
+                        }));
+
+                        stageResults.forEach(({ stage, targetRegion }) => {
+                            if (stage && stage.level) {
+                                const levelId = stage.level.id;
+                                validStageIds.push(levelId);
+
+                                const stageCard = makeStageCard(stage, { showRegion: true });
+                                const col = document.createElement('div');
+                                col.id = getStageCardElementId(stage, targetRegion);
+                                col.className = 'col d-flex justify-content-center';
+                                col.appendChild(stageCard);
+
+                                let masonryContainer = stagesDiv.querySelector('.row');
+                                if (!masonryContainer) {
+                                    masonryContainer = document.createElement('div');
+                                    masonryContainer.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4';
+                                    stagesDiv.appendChild(masonryContainer);
+                                }
+                                masonryContainer.appendChild(col);
+                            }
+                        });
+                    } else {
+                        const targetRegion = searchRegions[0];
+                        try {
+                            const stage = await getStageInfo(targetRegion, id);
+                            if (stage && stage.level) {
+                                const levelId = stage.level.id;
+                                validStageIds.push(levelId);
+
+                                const stageCard = makeStageCard(stage);
+                                const col = document.createElement('div');
+                                col.id = getStageCardElementId(stage, targetRegion);
+                                col.className = 'col d-flex justify-content-center';
+                                col.appendChild(stageCard);
+
+                                let masonryContainer = stagesDiv.querySelector('.row');
+                                if (!masonryContainer) {
+                                    masonryContainer = document.createElement('div');
+                                    masonryContainer.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4';
+                                    stagesDiv.appendChild(masonryContainer);
+                                }
+                                masonryContainer.appendChild(col);
+                            }
+                        } catch (err) {
+                            console.error(`Failed to load stage with ID ${id} from ${targetRegion}:`, err);
+                        } finally {
+                            processedCount += 1;
+                            updateLoadingProgress(progressState, processedCount);
                         }
-                    } catch (err) {
-                        console.error(`Failed to load stage with ID ${id}:`, err);
-                    } finally {
-                        processedCount += 1;
-                        updateLoadingProgress(progressState, processedCount);
                     }
                 }
 
-                const csText = validStageIds.join(', ');
-                stageIdInput.value = csText;
+                const displayStageIds = autoDetectMode ? stageIds : validStageIds;
+                const csText = displayStageIds.join(', ');
+                stageIdsInput.value = csText;
                 window.history.replaceState(null, '', `?stages=${csText.replace(/ /g, '')}&region=${region}`);
                 const sha256Hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(csText));
                 const hashArray = Array.from(new Uint8Array(sha256Hash));
@@ -414,8 +547,10 @@
                     copyExcelButton.textContent = '复制为 Excel 格式';
                     copyExcelButton.addEventListener('click', () => {
                         const filtered = getFilteredStages();
-                        const copyText = filtered.map(e => 
-                            `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
+                        const copyText = filtered.map(e =>
+                            autoDetectMode
+                                ? `${regionMap[getStageRegion(e)]?.name || getStageRegion(e)}\t${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
+                                : `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
                         ).join('\n');
                         navigator.clipboard.writeText(copyText);
                         copyExcelButton.textContent = '已复制';
@@ -429,7 +564,7 @@
                     generateImageButton.className = 'btn btn-primary flex-fill';
                     generateImageButton.textContent = '生成图片';
                     generateImageButton.addEventListener('click', () => {
-                        generateStageImage(getFilteredStages());
+                        generateStageImage(getFilteredStages(), { showRegion: autoDetectMode });
                     });
                     
                     buttonsContainer.appendChild(copyExcelButton);
@@ -439,18 +574,21 @@
                     await loadBonusMessage(hashHex);
                 }
             } finally {
+                isSearching = false;
                 removeLoadingProgress();
-                submitBtn.disabled = false;
-                submitBtn.textContent = '查询';
+                syncSearchInputState();
             }
         }
 
         async function handleSubmit(event){
             event.preventDefault();
-            const submitBtn = document.querySelector('#search button[type="submit"]');
             if (submitBtn.disabled) return;
-            const input = document.getElementById('stageIdsInput').value;
-            const hintsDiv = document.getElementById('hints');
+            const validationState = getSearchValidationState();
+            if (validationState.disableSubmit) {
+                syncSearchInputState();
+                return;
+            }
+            const input = stageIdsInput.value;
             if(input.length <= 20){
                 const bonusMessage = document.querySelector('.bonus-message');
                 if(bonusMessage){

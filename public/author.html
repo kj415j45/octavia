@@ -193,7 +193,7 @@
                 try {
                     const stage = await getStageInfo(stageInfo.region, stageInfo.stageId);
                     if (stage && stage.level) {
-                        const stageCard = makeStageCard(stage, stageInfo.region, { showRegion: true, linkToPlatform: true });
+                        const stageCard = makeStageCard(stage, { showRegion: true, linkToPlatform: true });
                         const col = document.createElement('div');
                         col.className = 'col d-flex justify-content-center';
                         col.appendChild(stageCard);
