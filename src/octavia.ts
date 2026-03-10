@@ -38,7 +38,7 @@ class Octavia {
 		const payload = {
 			region,
 			level_id: stageId,
-			agg_req_list: [{ api_name: 'level_detail' }, { api_name: 'developer_info' }, { api_name: 'config' }],
+			agg_req_list: [{ api_name: 'level_detail' }, { api_name: 'developer_info' }, { api_name: 'reply_card' }, { api_name: 'config' }],
 		};
 		const data = await this.request('POST', endpoint, {}, payload);
 		const resp_map = data.data.resp_map;
@@ -50,6 +50,7 @@ class Octavia {
 
 		const levelDetail = resp_map.level_detail.data.level_detail_response.level_info;
 		const developerInfo = resp_map.developer_info.data.developer_news_response;
+		const replyCard = resp_map.reply_card.data.reply_card_response;
 
 		const level = {
 			region: region,
@@ -68,6 +69,7 @@ class Octavia {
 				},
 				hotScore: levelDetail.hot_score,
 				goodRate: levelDetail.good_rate,
+				comments: replyCard.reply_count,
 				cover: {
 					images: [levelDetail.cover_img.url, ...levelDetail.images.map((img: any) => img.url)],
 					videoCover: levelDetail.video_info.video_cover,

@@ -220,7 +220,7 @@ async function generateStageImage(stages) {
             ratingCell.style.textAlign = 'left';
             
             const ratingBadge = document.createElement('span');
-            ratingBadge.textContent = stage.level.meta.goodRate;
+            ratingBadge.textContent = stage.level.meta.goodRate + ` (${stage.level.meta.comments})`;
             ratingBadge.style.display = 'inline-block';
             ratingBadge.style.padding = '4px 8px';
             ratingBadge.style.fontSize = '12px';

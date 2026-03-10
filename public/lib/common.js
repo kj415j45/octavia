@@ -390,7 +390,7 @@ function makeStageCard(stage, region, options = {}) {
 
     const stats = document.createElement('small');
     stats.className = 'text-muted text-nowrap ms-2';
-    stats.textContent = `${meta.hotScore} | ${meta.goodRate}`;
+    stats.textContent = `${meta.hotScore} | ${meta.goodRate} (${meta.comments})`;
     titleRow.appendChild(stats);
 
     cardBody.appendChild(titleRow);
