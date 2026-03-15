@@ -29,7 +29,7 @@ export async function searchStages(keyword: string, pageParam: string | null) {
 			`SELECT region, stage_id
 			 FROM stage_cache
 			 WHERE name LIKE '%' || REPLACE(REPLACE(REPLACE(?, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' ESCAPE '\\' COLLATE NOCASE
-			 ORDER BY expires_at DESC
+			 ORDER BY stage_id DESC
 			 LIMIT ? OFFSET ?`,
 		)
 		.bind(query, FETCH_SIZE, offset)
