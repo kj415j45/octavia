@@ -33,9 +33,11 @@ export async function runScheduled() {
 			const startTime = Date.now();
 			let success = true;
 			let errorMsg = '';
+			let endTime;
 
 			try {
 				const result = await octavia.getStageInfo(region as Regions, stageId);
+				endTime = Date.now();
 
 				// 查询成功：更新缓存数据和 rotate_at
 				const newNow = Math.floor(Date.now() / 1000);
@@ -96,7 +98,7 @@ export async function runScheduled() {
 					.run();
 			}
 
-			const duration = Date.now() - startTime;
+			const duration = (endTime || Date.now()) - startTime;
 
 			// 写入 Analytics Engine
 			env.analytics.writeDataPoint({
