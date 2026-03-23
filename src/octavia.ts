@@ -1,5 +1,9 @@
 const defaultUA = 'Octavia/1.0.0 (kj415j45/octavia)';
 
+import { taggedLogger } from './logger';
+
+const logger = taggedLogger('octavia');
+
 export enum Regions {
 	CN_GF = 'cn_gf01',
 	CN_BILI = 'cn_qd01',
@@ -42,7 +46,7 @@ class Octavia {
 		};
 		const data = await this.request('POST', endpoint, {}, payload);
 		const resp_map = data.data.resp_map;
-		console.debug('Received stage info:', resp_map);
+		logger.debug('Received stage info:', resp_map);
 
 		if(resp_map.level_detail.retcode === StageNotFoundError.retcode){
 			throw new StageNotFoundError(`Stage with ID ${stageId} not found in region ${region}`);
@@ -155,7 +159,7 @@ class Octavia {
 
 			return jsonDoc;
 		} catch (error) {
-			console.error('Request error:', error);
+			logger.error('Request error:', error);
 			throw error;
 		}
 	}

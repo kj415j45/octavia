@@ -4,6 +4,9 @@ import { getStatusData } from './apis/status';
 import { getAuthorInfo } from './apis/author';
 import { runScheduled } from './scheduled';
 import { Global } from './global';
+import { taggedLogger } from './logger';
+
+const logger = taggedLogger('Main');
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -57,6 +60,7 @@ export default {
 
 			return new Response('not found', { status: 404 });
 		} catch (e) {
+			logger.error('Unhandled fetch error:', e);
 			return new Response(null, { status: 500 });
 		}
 	},
@@ -65,7 +69,12 @@ export default {
 		Global.setEnv(env);
 		Global.setCtx(ctx);
 
-		await runScheduled();
+		try {
+			await runScheduled();
+		} catch (e) {
+			logger.error('Unhandled scheduled error:', e);
+			throw e;
+		}
 	},
 } satisfies ExportedHandler<Env>;
 

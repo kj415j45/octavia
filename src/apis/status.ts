@@ -1,4 +1,7 @@
 import { Global } from '../global';
+import { taggedLogger } from '../logger';
+
+const logger = taggedLogger('api:status');
 
 export interface StatusDataPoint {
 	timestamp: number; // Unix timestamp in milliseconds
@@ -48,7 +51,7 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 		const apiToken = env.ANALYTICS_API_TOKEN || '';
 		
 		if (!accountId || !apiToken) {
-            console.error('ACCOUNT_ID or ANALYTICS_API_TOKEN is not set.');
+			logger.error('ACCOUNT_ID or ANALYTICS_API_TOKEN is not set.');
 			return [];
 		}
 
@@ -64,7 +67,7 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 
 		if (!response.ok) {
 			const errorText = await response.text();
-			console.error('Analytics Engine SQL query failed:', response.status, errorText);
+			logger.error('Analytics Engine SQL query failed:', response.status, errorText);
 			return [];
 		}
 
@@ -72,7 +75,7 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 		
 		// 解析并转换数据
 		if (!data.data || !Array.isArray(data.data)) {
-			console.warn('Unexpected response format from Analytics Engine');
+			logger.warn('Unexpected response format from Analytics Engine');
 			return [];
 		}
 
@@ -92,7 +95,7 @@ export async function getStatusData(): Promise<StatusDataPoint[]> {
 		});
 
 	} catch (error) {
-		console.error('Error querying Analytics Engine:', error);
+		logger.error('Error querying Analytics Engine:', error);
 		return [];
 	}
 }

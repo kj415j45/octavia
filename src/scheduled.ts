@@ -1,8 +1,10 @@
 import octavia, { Regions } from './octavia';
 import { Global } from './global';
+import { taggedLogger } from './logger';
 
 const MAX_BACKOFF = 7 * 24 * 3600; // 最大退避时间：7天
 const ROTATE_BATCH_SIZE = 5;
+const logger = taggedLogger('scheduled');
 
 export async function runScheduled() {
 	const env = Global.getEnv();
@@ -79,7 +81,7 @@ export async function runScheduled() {
 			} catch (error: any) {
 				success = false;
 				errorMsg = error.message || 'Unknown error';
-				console.error(`Scheduled: failed to query stage ${stageId} in ${region}:`, error);
+				logger.error(`Failed to query stage ${stageId} in ${region}:`, error);
 
 				// 查询失败：增量退避
 				const newNow = Math.floor(Date.now() / 1000);

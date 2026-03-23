@@ -1,5 +1,8 @@
 import octavia, { Regions, StageNotFoundError } from '../octavia';
 import { Global } from '../global';
+import { taggedLogger } from '../logger';
+
+const logger = taggedLogger('api:stage_info');
 
 type RequestStatus = {
 	cache: boolean; // 是否使用了缓存
@@ -46,7 +49,7 @@ export async function getStageInfo(region: string, stageId: string) {
 			}
 		}
 	} catch (error) {
-		console.error('Cache read error:', error);
+		logger.error('Cache read error:', error);
 		// 缓存读取失败，继续执行 API 请求
 	}
 
@@ -60,7 +63,7 @@ export async function getStageInfo(region: string, stageId: string) {
 		if (error instanceof StageNotFoundError) {
 			status.removed = true;
 			if (cached) {
-				console.warn(`Stage ${stageId} in region ${region} not found. Using cache.`);
+				logger.warn(`Stage ${stageId} in region ${region} not found. Using cache.`);
 				const data = cached.data;
 				status.cache = true;
 				const ret = Object.assign(JSON.parse(data as string), { status });
@@ -68,9 +71,9 @@ export async function getStageInfo(region: string, stageId: string) {
 			}
 		} else if (error instanceof DOMException && error.name === 'TimeoutError') {
 			status.upstream = null; // 上游状态未知
-			console.warn('API request timed out. Upstream status unknown.');
+			logger.warn('API request timed out. Upstream status unknown.');
 			if (cached) {
-				console.warn(`Using cache for stage ${stageId} in region ${region} due to timeout.`);
+				logger.warn(`Using cache for stage ${stageId} in region ${region} due to timeout.`);
 				const data = cached.data;
 				status.cache = true;
 				const ret = Object.assign(JSON.parse(data as string), { status });
@@ -78,7 +81,7 @@ export async function getStageInfo(region: string, stageId: string) {
 			}
 		}
 		status.upstream = false;
-		console.error('API request error:', error);
+		logger.error('API request error:', error);
 		throw error;
 	}
 
@@ -124,7 +127,7 @@ export async function getStageInfo(region: string, stageId: string) {
 				.run();
 		}
 	} catch (error) {
-		console.error('Cache write error:', error);
+		logger.error('Cache write error:', error);
 		// 缓存写入失败不影响返回结果
 	}
 
