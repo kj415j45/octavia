@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS stage_cache (
     data TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     expires_at INTEGER NOT NULL,
+    rotate_at INTEGER,
     PRIMARY KEY (region, stage_id)
 );
 
@@ -26,6 +27,9 @@ CREATE INDEX IF NOT EXISTS idx_stage_cache_description ON stage_cache(descriptio
 
 -- 为stage_cache表的缓存过期时间创建索引，提高按最近刷新排序的性能
 CREATE INDEX IF NOT EXISTS idx_stage_cache_expires_at ON stage_cache(expires_at DESC);
+
+-- 为stage_cache表的rotate_at创建索引，提高滚动查询选取性能
+CREATE INDEX IF NOT EXISTS idx_stage_cache_rotate_at ON stage_cache(rotate_at ASC);
 
 -- 为stage_cache表的主键创建唯一索引
 CREATE UNIQUE INDEX IF NOT EXISTS idx_stage_cache_pk ON stage_cache(region, stage_id);

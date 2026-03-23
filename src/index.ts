@@ -2,8 +2,8 @@ import { getStageInfo } from './apis/stage_info';
 import { searchStages } from './apis/stage_search';
 import { getStatusData } from './apis/status';
 import { getAuthorInfo } from './apis/author';
+import { runScheduled } from './scheduled';
 import { Global } from './global';
-import octavia, { Regions } from './octavia';
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -65,42 +65,7 @@ export default {
 		Global.setEnv(env);
 		Global.setCtx(ctx);
 
-		const testPoints = [
-			{ region: Regions.CN_GF, stageId: '7257388309' },
-			{ region: Regions.CN_GF, stageId: '32913306460' },
-			{ region: Regions.CN_GF, stageId: '24195383780' },
-			// https://www.hoyolab.com/article/43228776
-			{ region: Regions.CN_CHT, stageId: '12119985095' },
-			{ region: Regions.GLB_EU, stageId: '24801105423' },
-			{ region: Regions.GLB_AS, stageId: '13031458938' },
-			{ region: Regions.GLB_NA, stageId: '20489732129' },
-		];
-
-		// 并行测试每个奇域并记录用时
-		await Promise.all(
-			testPoints.map(async ({ region, stageId }) => {
-				const startTime = Date.now();
-				let success = true;
-				let errorMsg = '';
-
-				try {
-					await octavia.getStageInfo(region, stageId);
-				} catch (error: any) {
-					success = false;
-					errorMsg = error.message || 'Unknown error';
-					console.error(`Failed to query stage ${stageId}:`, error);
-				}
-
-				const duration = Date.now() - startTime;
-
-				// 写入 Analytics Engine
-				env.analytics.writeDataPoint({
-					indexes: [`${region}-${stageId}`],
-					doubles: [duration, success ? 1 : 0],
-					blobs: [success ? '' : errorMsg],
-				});
-			}),
-		);
+		await runScheduled();
 	},
 } satisfies ExportedHandler<Env>;
 

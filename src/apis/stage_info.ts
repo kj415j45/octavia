@@ -1,8 +1,6 @@
 import octavia, { Regions, StageNotFoundError } from '../octavia';
 import { Global } from '../global';
 
-const CACHE_TTL = 3600; // 1小时，单位：秒
-
 type RequestStatus = {
 	cache: boolean; // 是否使用了缓存
 	upstream: boolean | null; // 上游是否可用，null表示未知（仅当cache为false时有效）
@@ -99,12 +97,15 @@ export async function getStageInfo(region: string, stageId: string) {
 		const db = Global.getEnv().DB;
 		const now = Math.floor(Date.now() / 1000);
 		const createdAt = cached ? Math.floor(cached.created_at as number) : now;
-		const expiresAt = now + CACHE_TTL;
+		const expiresAt = now + Global.CACHE_TTL;
+		const rotateAt = now + Global.ROTATE_INTERVAL;
 		const { name, intro, description } = getCachedStageTextFields(result);
 
 		await db
-			.prepare('INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, name, intro, description, data, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-			.bind(region, stageId, uid, name, intro, description, JSON.stringify(result), createdAt, expiresAt)
+			.prepare(
+				'INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, name, intro, description, data, created_at, expires_at, rotate_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+			)
+			.bind(region, stageId, uid, name, intro, description, JSON.stringify(result), createdAt, expiresAt, rotateAt)
 			.run();
 
 		// 更新作者信息表
