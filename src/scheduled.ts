@@ -84,8 +84,9 @@ export async function runScheduled() {
 				logger.error(`Failed to query stage ${stageId} in ${region}:`, error);
 
 				// 查询失败：增量退避
+				const multipier = 1 + Math.random() * 2; // 退避倍数
 				const newNow = Math.floor(Date.now() / 1000);
-				const currentInterval = rotateAt !== null ? rotateAt - oldExpiresAt : Global.ROTATE_INTERVAL;
+				const currentInterval = rotateAt !== null ? (rotateAt - oldExpiresAt) * multipier : Global.ROTATE_INTERVAL;
 				const backoff = Math.min(Math.max(currentInterval, Global.ROTATE_INTERVAL), MAX_BACKOFF);
 				const nextRotateAt = newNow + backoff;
 
