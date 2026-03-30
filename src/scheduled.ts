@@ -23,12 +23,12 @@ export async function runScheduled() {
 		return;
 	}
 
-	await Promise.all(
+	await Promise.allSettled(
 		rows.results.map(async (row) => {
 			const region = row.region as string;
 			const stageId = row.stage_id as string;
-			const oldExpiresAt = row.expires_at as number;
-			const rotateAt = row.rotate_at as number | null;
+			const oldExpiresAt = row.expires_at as number || 0;
+			const rotateAt = row.rotate_at as number | null || null;
 
 			const startTime = Date.now();
 			let success = true;
@@ -42,7 +42,7 @@ export async function runScheduled() {
 				// 查询成功：更新缓存数据和 rotate_at
 				const newNow = Math.floor(Date.now() / 1000);
 				const expiresAt = newNow + Global.CACHE_TTL;
-				const nextRotateAt = newNow + Global.ROTATE_INTERVAL;
+				const nextRotateAt = Math.floor(newNow + Global.ROTATE_INTERVAL);
 
 				// 提取uid
 				let uid: string | null = null;
@@ -90,7 +90,7 @@ export async function runScheduled() {
 				const newNow = Math.floor(Date.now() / 1000);
 				const currentInterval = rotateAt !== null ? (rotateAt - oldExpiresAt) * multipier : Global.ROTATE_INTERVAL;
 				const backoff = Math.min(Math.max(currentInterval, Global.ROTATE_INTERVAL), MAX_BACKOFF);
-				const nextRotateAt = newNow + backoff;
+				const nextRotateAt = Math.floor(newNow + backoff);
 
 				await db
 					.prepare('UPDATE stage_cache SET rotate_at = ? WHERE region = ? AND stage_id = ?')
