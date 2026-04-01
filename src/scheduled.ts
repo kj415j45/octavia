@@ -11,10 +11,10 @@ export async function runScheduled() {
 	const db = env.DB;
 	const now = Math.floor(Date.now() / 1000);
 
-	// 取出需要滚动更新的记录（rotate_at <= now 或 rotate_at 为 NULL，按 rotate_at ASC 取前5）
+	// 取出需要滚动更新的记录（rotate_at <= now，按 rotate_at ASC 取前5）
 	const rows = await db
 		.prepare(
-			'SELECT region, stage_id, expires_at, rotate_at FROM stage_cache WHERE rotate_at IS NULL OR rotate_at <= ? ORDER BY rotate_at ASC LIMIT ?',
+			'SELECT region, stage_id, expires_at, rotate_at FROM stage_cache WHERE rotate_at <= ? ORDER BY rotate_at ASC LIMIT ?',
 		)
 		.bind(now, ROTATE_BATCH_SIZE)
 		.all();
