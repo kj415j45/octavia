@@ -482,11 +482,14 @@ function makeStageCard(stage, options = {}) {
 
     // Add author and level ID section
     const footer = document.createElement('div');
-    footer.className = 'card-footer mt-auto d-flex justify-content-between align-items-center';
+    footer.className = 'card-footer mt-auto d-flex flex-wrap justify-content-between align-items-center gap-2';
 
     // Author info
     const authorInfo = document.createElement('div');
     authorInfo.className = 'd-flex align-items-center';
+    authorInfo.style.minWidth = '0';
+    authorInfo.style.flexShrink = '1';
+    authorInfo.style.overflow = 'hidden';
 
     const mysUid = author.mys?.aid ? `m${author.mys.aid}` : null;
     const hylUid = author.hyl?.aid ? `h${author.hyl.aid}` : null;
@@ -531,6 +534,7 @@ function makeStageCard(stage, options = {}) {
     }
 
     const authorName = document.createElement('span');
+    authorName.className = 'text-truncate';
     authorName.textContent = author.game.name ?? author.mys?.name ?? author.hyl?.name ?? "";
 
     authorLink.appendChild(avatarContainer);
@@ -540,7 +544,8 @@ function makeStageCard(stage, options = {}) {
 
     // Level ID and copy button
     const levelInfo = document.createElement('div');
-    levelInfo.className = 'd-flex align-items-center';
+    levelInfo.className = 'd-flex align-items-center ms-auto';
+    levelInfo.style.flexShrink = '0';
 
     const levelId = document.createElement('a');
     levelId.className = 'me-2';
