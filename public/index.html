@@ -446,8 +446,52 @@
             const stagesDiv = document.getElementById('stages');
             stagesDiv.innerHTML = ''; // Clear previous content
 
-            const validStageIds = [];
+            // Pre-sized with null slots so retry writes land at the correct input-order index
+            const validStageIds = new Array(stageIds.length).fill(null);
             let processedCount = 0;
+
+            function setupFiltersAndButtons() {
+                if (document.getElementById('copyExcelButton')) {
+                    applyFilters();
+                    return;
+                }
+                buildFilterTags();
+                initFilterControls();
+                document.getElementById('filters').classList.remove('d-none');
+
+                const buttonsContainer = document.createElement('div');
+                buttonsContainer.className = 'd-flex gap-2 mb-3 justify-content-center col-md-8 col-lg-6 d-none d-md-flex';
+
+                const copyExcelButton = document.createElement('button');
+                copyExcelButton.id = 'copyExcelButton';
+                copyExcelButton.className = 'btn btn-success flex-fill';
+                copyExcelButton.textContent = '复制为 Excel 格式';
+                copyExcelButton.addEventListener('click', () => {
+                    const filtered = getFilteredStages();
+                    const copyText = filtered.map(e =>
+                        autoDetectMode
+                            ? `${regionMap[getStageRegion(e)]?.name || getStageRegion(e)}\t${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
+                            : `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
+                    ).join('\n');
+                    navigator.clipboard.writeText(copyText);
+                    copyExcelButton.textContent = '已复制';
+                    setTimeout(() => {
+                        copyExcelButton.textContent = '复制为 Excel 格式';
+                    }, 2000);
+                });
+
+                const generateImageButton = document.createElement('button');
+                generateImageButton.id = 'generateImageButton';
+                generateImageButton.className = 'btn btn-primary flex-fill';
+                generateImageButton.textContent = '生成图片';
+                generateImageButton.addEventListener('click', () => {
+                    generateStageImage(getFilteredStages(), { showRegion: autoDetectMode });
+                });
+
+                buttonsContainer.appendChild(copyExcelButton);
+                buttonsContainer.appendChild(generateImageButton);
+                hintsDiv.appendChild(buttonsContainer);
+            }
 
             try {
                 for (const id of stageIds) {
@@ -491,7 +535,7 @@
                             const stage = await getStageInfo(targetRegion, id);
                             if (stage && stage.level) {
                                 const levelId = stage.level.id;
-                                validStageIds.push(levelId);
+                                validStageIds[stageIds.indexOf(id)] = levelId;
 
                                 const stageCard = makeStageCard(stage);
                                 const col = document.createElement('div');
@@ -508,7 +552,63 @@
                                 masonryContainer.appendChild(col);
                             }
                         } catch (err) {
-                            console.error(`Failed to load stage with ID ${id} from ${targetRegion}:`, err);
+                            if (err.httpStatus === 404) {
+                                console.warn(`Stage ${id} not found in ${targetRegion}.`);
+                            } else {
+                                console.error(`Failed to load stage with ID ${id} from ${targetRegion}:`, err);
+                                // Show placeholder card and retry asynchronously
+                                const placeholderColId = `stage-card-placeholder-${id}`;
+                                const placeholderCol = document.createElement('div');
+                                placeholderCol.id = placeholderColId;
+                                placeholderCol.className = 'col d-flex justify-content-center';
+                                placeholderCol.innerHTML = `
+                                    <div class="card h-100 w-100 mx-1">
+                                        <div class="card-body text-center py-5 text-muted">
+                                            <div class="spinner-border spinner-border-sm mb-2" role="status" aria-hidden="true"></div>
+                                            <div class="small">重试中... (ID: ${id})</div>
+                                        </div>
+                                    </div>
+                                `;
+                                let masonryContainer = stagesDiv.querySelector('.row');
+                                if (!masonryContainer) {
+                                    masonryContainer = document.createElement('div');
+                                    masonryContainer.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4';
+                                    stagesDiv.appendChild(masonryContainer);
+                                }
+                                masonryContainer.appendChild(placeholderCol);
+                                // Async retry: up to 2 more attempts with increasing delay
+                                (async () => {
+                                    let retryStage = null;
+                                    for (let attempt = 0; attempt < 2; attempt++) {
+                                        await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+                                        try {
+                                            retryStage = await getStageInfo(targetRegion, id);
+                                            if (retryStage && retryStage.level) break;
+                                            retryStage = null;
+                                        } catch (retryErr) {
+                                            console.warn(`Retry ${attempt + 1}/2 failed for stage ${id}:`, retryErr);
+                                        }
+                                    }
+                                    const ph = document.getElementById(placeholderColId);
+                                    if (!ph) return; // Search was reset, abort
+                                    if (retryStage && retryStage.level) {
+                                        validStageIds[stageIds.indexOf(id)] = retryStage.level.id;
+                                        const stageCard = makeStageCard(retryStage);
+                                        ph.id = getStageCardElementId(retryStage, targetRegion);
+                                        ph.innerHTML = '';
+                                        ph.appendChild(stageCard);
+                                        // Re-sort $Stages to match input order
+                                        const orderedValidIds = validStageIds.filter(Boolean);
+                                        $Stages.sort((a, b) => orderedValidIds.indexOf(a.level.id) - orderedValidIds.indexOf(b.level.id));
+                                        // Update URL and input field in correct order
+                                        window.history.replaceState(null, '', `?stages=${orderedValidIds.join(',')}&region=${region}`);
+                                        stageIdsInput.value = orderedValidIds.join(', ');
+                                        setupFiltersAndButtons();
+                                    } else {
+                                        ph.remove();
+                                    }
+                                })();
+                            }
                         } finally {
                             processedCount += 1;
                             updateLoadingProgress(progressState, processedCount);
@@ -516,61 +616,26 @@
                     }
                 }
 
-                const displayStageIds = autoDetectMode ? stageIds : validStageIds;
+                const displayStageIds = autoDetectMode ? stageIds : validStageIds.filter(Boolean);
                 const csText = displayStageIds.join(', ');
-                stageIdsInput.value = csText;
-                window.history.replaceState(null, '', `?stages=${csText.replace(/ /g, '')}&region=${region}`);
+                if (csText) {
+                    stageIdsInput.value = csText;
+                    window.history.replaceState(null, '', `?stages=${csText.replace(/ /g, '')}&region=${region}`);
+                }
                 const sha256Hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(csText));
                 const hashArray = Array.from(new Uint8Array(sha256Hash));
                 const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
                 console.log(`SHA-256 Hash of stage IDs: ${hashHex}`);
 
                 hintsDiv.innerHTML = '';
-                if (!stagesDiv.querySelector('.row')) {
+                const hasPendingRetries = !!stagesDiv.querySelector('.col[id^="stage-card-placeholder-"]');
+                if (!stagesDiv.querySelector('.row') || ($Stages.length === 0 && !hasPendingRetries)) {
                     const errorDiv = document.createElement('div');
                     errorDiv.className = 'alert alert-danger';
                     errorDiv.textContent = '请输入至少一个有效的奇域ID！';
                     hintsDiv.appendChild(errorDiv);
-                } else {
-                    // Show filter controls
-                    buildFilterTags();
-                    initFilterControls();
-                    document.getElementById('filters').classList.remove('d-none');
-
-                    // add copy as excel button before the stages
-                    const buttonsContainer = document.createElement('div');
-                    buttonsContainer.className = 'd-flex gap-2 mb-3 justify-content-center col-md-8 col-lg-6 d-none d-md-flex';
-                    
-                    const copyExcelButton = document.createElement('button');
-                    copyExcelButton.id = 'copyExcelButton';
-                    copyExcelButton.className = 'btn btn-success flex-fill';
-                    copyExcelButton.textContent = '复制为 Excel 格式';
-                    copyExcelButton.addEventListener('click', () => {
-                        const filtered = getFilteredStages();
-                        const copyText = filtered.map(e =>
-                            autoDetectMode
-                                ? `${regionMap[getStageRegion(e)]?.name || getStageRegion(e)}\t${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
-                                : `${e.level.id}\t${e.level.meta.name}\t${e.level.meta.players.str}`
-                        ).join('\n');
-                        navigator.clipboard.writeText(copyText);
-                        copyExcelButton.textContent = '已复制';
-                        setTimeout(() => {
-                            copyExcelButton.textContent = '复制为 Excel 格式';
-                        }, 2000);
-                    });
-                    
-                    const generateImageButton = document.createElement('button');
-                    generateImageButton.id = 'generateImageButton';
-                    generateImageButton.className = 'btn btn-primary flex-fill';
-                    generateImageButton.textContent = '生成图片';
-                    generateImageButton.addEventListener('click', () => {
-                        generateStageImage(getFilteredStages(), { showRegion: autoDetectMode });
-                    });
-                    
-                    buttonsContainer.appendChild(copyExcelButton);
-                    buttonsContainer.appendChild(generateImageButton);
-                    hintsDiv.appendChild(buttonsContainer);
-
+                } else if ($Stages.length > 0) {
+                    setupFiltersAndButtons();
                     await loadBonusMessage(hashHex);
                 }
             } finally {

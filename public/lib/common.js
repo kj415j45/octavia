@@ -49,6 +49,11 @@ async function populateRegionDropdown(currentRegion = 'cn_gf01') {
 // API utilities
 async function getStageInfo(region, id) {
     const response = await fetch(`${baseUrl}/api/stage?region=${region}&id=${id}`);
+    if (!response.ok) {
+        const error = new Error(`Stage request failed: ${response.status}`);
+        error.httpStatus = response.status;
+        throw error;
+    }
     return await response.json();
 }
 

@@ -1,5 +1,6 @@
 import { getStageInfo } from './apis/stage_info';
 import { searchStages } from './apis/stage_search';
+import { StageNotFoundError } from './octavia';
 import { getStatusData } from './apis/status';
 import { getAuthorInfo } from './apis/author';
 import { runScheduled } from './scheduled';
@@ -26,8 +27,16 @@ export default {
 					case 'stage': {
 						const region = url.searchParams.get('region') || '';
 						const stageId = url.searchParams.get('id') || '';
-						const data = await getStageInfo(region, stageId);
-						return JSONResponse(data);
+						try {
+							const data = await getStageInfo(region, stageId);
+							return JSONResponse(data);
+						} catch (e) {
+							if (e instanceof StageNotFoundError) {
+								return JSONResponse({ error: 'not_found' }, { status: 404 });
+							}
+							logger.error('Stage API error:', e);
+							return JSONResponse({ error: 'upstream_error' }, { status: 503 });
+						}
 					}
 					case 'search/stage': {
 						const keyword = url.searchParams.get('q') || '';
