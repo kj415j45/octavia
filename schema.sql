@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS stage_cache (
     description TEXT,
     good_rate TEXT,
     category TEXT,
+    deleted INTEGER DEFAULT 0,
     data TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     expires_at INTEGER NOT NULL,

@@ -66,6 +66,15 @@ export async function getStageInfo(region: string, stageId: string) {
 			status.removed = true;
 			if (cached) {
 				logger.warn(`Stage ${stageId} in region ${region} not found. Using cache.`);
+				try {
+					const db = Global.getEnv().DB;
+					await db
+						.prepare('UPDATE stage_cache SET deleted = 1 WHERE region = ? AND stage_id = ?')
+						.bind(region, stageId)
+						.run();
+				} catch (dbError) {
+					logger.error('Failed to mark stage as deleted:', dbError);
+				}
 				const data = cached.data;
 				status.cache = true;
 				const ret = Object.assign(JSON.parse(data as string), { status });
@@ -108,11 +117,9 @@ export async function getStageInfo(region: string, stageId: string) {
 
 		await db
 			.prepare(
-				'INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, name, intro, description, good_rate, category, data, created_at, expires_at, rotate_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-			)
-			.bind(region, stageId, uid, name, intro, description, goodRate, category, JSON.stringify(result), createdAt, expiresAt, rotateAt)
-			.run();
-
+					'INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, name, intro, description, good_rate, category, deleted, data, created_at, expires_at, rotate_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)',
+				)
+				.bind(region, stageId, uid, name, intro, description, goodRate, category, JSON.stringify(result), createdAt, expiresAt, rotateAt)
 		// 更新作者信息表
 		if (uid && result?.author) {
 			const author = result.author;

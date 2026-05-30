@@ -1,4 +1,4 @@
-import octavia, { Regions } from './octavia';
+import octavia, { Regions, StageNotFoundError } from './octavia';
 import { Global } from './global';
 import { taggedLogger } from './logger';
 
@@ -69,7 +69,7 @@ export async function runScheduled(cron?: string) {
 
 				await db
 					.prepare(
-						'UPDATE stage_cache SET uid = ?, name = ?, intro = ?, description = ?, good_rate = ?, category = ?, data = ?, expires_at = ?, rotate_at = ? WHERE region = ? AND stage_id = ?',
+						'UPDATE stage_cache SET uid = ?, name = ?, intro = ?, description = ?, good_rate = ?, category = ?, deleted = 0, data = ?, expires_at = ?, rotate_at = ? WHERE region = ? AND stage_id = ?',
 					)
 					.bind(uid, name, intro, description, goodRate, category, JSON.stringify(result), expiresAt, nextRotateAt, region, stageId)
 					.run();
@@ -100,9 +100,10 @@ export async function runScheduled(cron?: string) {
 				const backoff = Math.min(Math.max(currentInterval, Global.ROTATE_INTERVAL), MAX_BACKOFF);
 				const nextRotateAt = Math.floor(newNow + backoff);
 
+				const isNotFound = error instanceof StageNotFoundError;
 				await db
-					.prepare('UPDATE stage_cache SET rotate_at = ? WHERE region = ? AND stage_id = ?')
-					.bind(nextRotateAt, region, stageId)
+					.prepare('UPDATE stage_cache SET deleted = ?, rotate_at = ? WHERE region = ? AND stage_id = ?')
+					.bind(isNotFound ? 1 : 0, nextRotateAt, region, stageId)
 					.run();
 			}
 
@@ -145,6 +146,7 @@ export async function updateLeaderboard() {
 			`SELECT stage_id, name, uid, good_rate, category
 			 FROM stage_cache
 			 WHERE region = 'cn_gf01'
+			   AND (deleted IS NULL OR deleted = 0)
 			   AND good_rate IS NOT NULL
 			   AND good_rate != ''
 			   AND good_rate NOT LIKE '--%'`,
