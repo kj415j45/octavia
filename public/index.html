@@ -73,13 +73,16 @@
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold mb-1">人数范围</label>
-                            <div class="d-flex align-items-center gap-2">
-                                <input type="number" id="filterPlayersMin" class="form-control form-control-sm" value="1" min="1" max="8" style="width:70px" />
-                                <span>~</span>
-                                <input type="number" id="filterPlayersMax" class="form-control form-control-sm" value="8" min="1" max="8" style="width:70px" />
+                            <label class="form-label fw-bold mb-1">人数限制</label>
+                            <div id="filterPlayerMode" class="d-flex flex-wrap gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary filter-player-mode-btn" data-value="solo">只能单人</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary filter-player-mode-btn" data-value="optional">可选多人</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary filter-player-mode-btn" data-value="multi">只能多人</button>
                             </div>
-                            <div id="filterPlayersWarning" class="form-text text-danger d-none">最小值不能大于最大值</div>
+                        </div>
+                        <div class="col-12 d-none" id="filterPlayersSliderRow">
+                            <label class="form-label fw-bold mb-1">游玩人数：<span id="filterPlayersSliderVal">2</span> 人</label>
+                            <input type="range" id="filterPlayersSlider" class="form-range" min="2" max="8" value="2" />
                         </div>
                     </div>
                 </div>
@@ -223,10 +226,10 @@
         // --- Filter state ---
         let selectedTags = new Set();
         let selectedCategory = null;
+        let selectedPlayerMode = null; // 'solo' | 'optional' | 'multi' | null
 
         function getFilteredStages() {
-            const minVal = parseInt(document.getElementById('filterPlayersMin').value) || 1;
-            const maxVal = parseInt(document.getElementById('filterPlayersMax').value) || 8;
+            const sliderVal = parseInt(document.getElementById('filterPlayersSlider').value) || 2;
             return $Stages.filter(stage => {
                 const meta = stage.level.meta;
                 // Tag filter (type + tags merged): OR logic, empty = all
@@ -238,8 +241,18 @@
                 if (selectedCategory) {
                     if (meta.category !== selectedCategory) return false;
                 }
-                // Players range overlap: [filterMin, filterMax] ∩ [meta.min, meta.max]
-                if (meta.players.min > maxVal || meta.players.max < minVal) return false;
+                // Player mode filter
+                if (selectedPlayerMode === 'solo' && !(meta.players.min === 1 && meta.players.max === 1)) return false;
+                if (selectedPlayerMode === 'optional') {
+                    if (!(meta.players.min === 1 && meta.players.max > 1)) return false;
+                    // Slider: stage must support this player count
+                    if (meta.players.min > sliderVal || meta.players.max < sliderVal) return false;
+                }
+                if (selectedPlayerMode === 'multi') {
+                    if (!(meta.players.min > 1)) return false;
+                    // Slider: stage must support this player count
+                    if (meta.players.min > sliderVal || meta.players.max < sliderVal) return false;
+                }
                 return true;
             });
         }
@@ -257,18 +270,6 @@
         }
 
         function applyFilters() {
-            // Validate players range
-            const minInput = document.getElementById('filterPlayersMin');
-            const maxInput = document.getElementById('filterPlayersMax');
-            const warning = document.getElementById('filterPlayersWarning');
-            const minVal = parseInt(minInput.value);
-            const maxVal = parseInt(maxInput.value);
-            if (!isNaN(minVal) && !isNaN(maxVal) && minVal > maxVal) {
-                warning.classList.remove('d-none');
-            } else {
-                warning.classList.add('d-none');
-            }
-
             const filtered = getFilteredStages();
             const filteredIds = new Set(filtered.map(stage => getStageKey(stage)));
             $Stages.forEach(stage => {
@@ -342,19 +343,45 @@
                     applyFilters();
                 });
             });
-            // Players range — clone to remove old listeners, then rebind
-            const minEl = document.getElementById('filterPlayersMin');
-            const maxEl = document.getElementById('filterPlayersMax');
-            const newMin = minEl.cloneNode(true);
-            const newMax = maxEl.cloneNode(true);
-            minEl.parentNode.replaceChild(newMin, minEl);
-            maxEl.parentNode.replaceChild(newMax, maxEl);
-            newMin.value = 1;
-            newMax.value = 8;
-            newMin.addEventListener('input', applyFilters);
-            newMax.addEventListener('input', applyFilters);
-            // Reset warning
-            document.getElementById('filterPlayersWarning').classList.add('d-none');
+            // Players slider — reset
+            const sliderEl = document.getElementById('filterPlayersSlider');
+            const newSlider = sliderEl.cloneNode(true);
+            sliderEl.parentNode.replaceChild(newSlider, sliderEl);
+            newSlider.value = 2;
+            document.getElementById('filterPlayersSliderVal').textContent = '2';
+            newSlider.addEventListener('input', () => {
+                document.getElementById('filterPlayersSliderVal').textContent = newSlider.value;
+                applyFilters();
+            });
+            // Hide slider row initially
+            document.getElementById('filterPlayersSliderRow').classList.add('d-none');
+            // Player mode buttons — mutual exclusion
+            selectedPlayerMode = null;
+            document.querySelectorAll('.filter-player-mode-btn').forEach(btn => {
+                btn.classList.remove('btn-info');
+                btn.classList.add('btn-outline-secondary');
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                newBtn.addEventListener('click', () => {
+                    const val = newBtn.dataset.value;
+                    if (selectedPlayerMode === val) {
+                        selectedPlayerMode = null;
+                        newBtn.classList.remove('btn-info');
+                        newBtn.classList.add('btn-outline-secondary');
+                    } else {
+                        selectedPlayerMode = val;
+                        document.querySelectorAll('.filter-player-mode-btn').forEach(b => {
+                            b.classList.remove('btn-info');
+                            b.classList.add('btn-outline-secondary');
+                        });
+                        newBtn.classList.remove('btn-outline-secondary');
+                        newBtn.classList.add('btn-info');
+                    }
+                    // Show slider for multi and optional modes
+                    document.getElementById('filterPlayersSliderRow').classList.toggle('d-none', selectedPlayerMode !== 'multi' && selectedPlayerMode !== 'optional');
+                    applyFilters();
+                });
+            });
             // Reset toggle state to expanded
             document.getElementById('filterBody').style.display = '';
             document.getElementById('filterToggleBtn').textContent = '收起';
