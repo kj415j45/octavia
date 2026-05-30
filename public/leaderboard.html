@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>好评率排行榜 - Octavia</title>
+    <meta name="name" itemprop="name" content="好评率排行榜 - Octavia" />
+    <meta name="description" itemprop="description" content="Octavia 千星奇域好评率排行榜。" />
+    <meta name="keywords" content="Octavia, 千星奇域, 原神" />
+    <link rel="icon" href="/favicon.ico" />
+
+    <link rel="stylesheet" href="/lib/bootstrap.min.css" />
+    <link rel="stylesheet" href="/lib/font.css" />
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+    <header>
+        <nav class="navbar bg-body-tertiary">
+            <div class="container-fluid">
+                <a href="/" class="navbar-brand mb-0 h1">欧科塔维亚</a>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/index.html" class="btn btn-outline-secondary btn-sm" rel="noopener">奇域查询</a>
+                    <a href="/database.html" class="btn btn-outline-secondary btn-sm" rel="noopener">奇域数据库</a>
+                    <span class="text-muted">好评率排行榜</span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div id="body" class="container py-4">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            <h2 class="mb-0">好评率排行榜</h2>
+            <span class="badge bg-secondary" id="regionBadge">官服 (cn_gf01)</span>
+        </div>
+        <p class="text-muted small mb-4" id="snapshotInfo">数据加载中...</p>
+
+        <div id="loadingState" class="text-center py-5">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+        </div>
+
+        <div id="errorState" class="text-center py-5 d-none">
+            <p class="text-danger mb-0" id="errorMessage">加载失败，请稍后重试。</p>
+        </div>
+
+        <div id="emptyState" class="text-center py-5 d-none">
+            <h5 class="text-muted">暂无排行榜数据</h5>
+            <p class="text-muted small">排行榜每日北京时间 04:00 自动更新，请稍后再来。</p>
+        </div>
+
+        <div id="leaderboardContent" class="d-none">
+            <!-- Category tabs -->
+            <ul class="nav nav-tabs mb-4" id="categoryTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-long" data-bs-toggle="tab" data-bs-target="#pane-long"
+                        type="button" role="tab">长线游玩</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-light" data-bs-toggle="tab" data-bs-target="#pane-light"
+                        type="button" role="tab">轻量趣味</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="categoryTabContent">
+                <!-- 长线游玩 -->
+                <div class="tab-pane fade show active" id="pane-long" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-12 col-lg-8">
+                            <div id="long-top"></div>
+                        </div>
+                        <div class="col-12 col-lg-4">
+                            <div id="long-bottom"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 轻量趣味 -->
+                <div class="tab-pane fade" id="pane-light" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-12 col-lg-8">
+                            <div id="light-top"></div>
+                        </div>
+                        <div class="col-12 col-lg-4">
+                            <div id="light-bottom"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-auto">
+        <p class="text-center text-muted small">Source Code is available on <a href="https://github.com/kj415j45/octavia">GitHub</a></p>
+        <p class="text-center text-muted small">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
+    </footer>
+
+    <script src="/lib/bootstrap.bundle.min.js"></script>
+    <script>
+        function formatSnapshotTime(unixTs) {
+            const date = new Date(unixTs * 1000);
+            return date.toLocaleString('zh-CN', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        }
+
+        function makeTable(entries, rankType, title) {
+            const isTop = rankType === 'top';
+            const titleClass = isTop ? 'text-success' : 'text-danger';
+
+            if (!entries || entries.length === 0) {
+                return `<div class="d-flex align-items-center justify-content-between mb-2">
+                    <h5 class="${titleClass} mb-0">${title}</h5>
+                </div><p class="text-muted">暂无数据</p>`;
+            }
+
+            const allIds = entries.map(e => e.stage_id).join(',');
+            const detailUrl = `/index.html?stages=${encodeURIComponent(allIds)}`;
+
+            const rows = entries.map((entry) => {
+                const queryUrl = `/index.html?stages=${encodeURIComponent(entry.stage_id)}`;
+                const rankBadge = isTop && entry.rank <= 3
+                    ? `<span class="fw-bold text-warning">${['🥇', '🥈', '🥉'][entry.rank - 1]} ${entry.rank}</span>`
+                    : `<span class="text-muted">${entry.rank}</span>`;
+                const name = entry.name
+                    ? `<a href="${queryUrl}" class="text-decoration-none">${escapeHtml(entry.name)}</a>`
+                    : `<a href="${queryUrl}" class="text-decoration-none font-monospace text-muted">${escapeHtml(entry.stage_id)}</a>`;
+                const goodRateClass = isTop ? 'text-success fw-bold' : 'text-danger fw-bold';
+                return `<tr>
+                    <td class="text-center align-middle" style="width:3rem">${rankBadge}</td>
+                    <td class="align-middle">${name}</td>
+                    <td class="text-end align-middle ${goodRateClass}" style="width:5rem">${escapeHtml(entry.good_rate)}</td>
+                </tr>`;
+            }).join('');
+
+            return `<div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="${titleClass} mb-0">${title}</h5>
+                <a href="${detailUrl}" class="btn btn-outline-primary btn-sm">展开详情</a>
+            </div>
+            <div class="table-responsive"><table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center" style="width:3rem">名次</th>
+                        <th>奇域名称</th>
+                        <th class="text-end" style="width:5rem">好评率</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table></div>`;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function renderCategory(categoryKey, data) {
+            const prefix = categoryKey === '长线游玩' ? 'long' : 'light';
+            const topEl = document.getElementById(`${prefix}-top`);
+            const bottomEl = document.getElementById(`${prefix}-bottom`);
+            if (topEl) topEl.innerHTML = makeTable(data?.top, 'top', '🏆 好评率前 20');
+            if (bottomEl) bottomEl.innerHTML = makeTable(data?.bottom, 'bottom', '📉 好评率后 10');
+        }
+
+        async function loadLeaderboard() {
+            try {
+                const res = await fetch('/api/leaderboard');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+
+                document.getElementById('loadingState').classList.add('d-none');
+
+                if (!json.snapshot_at) {
+                    document.getElementById('emptyState').classList.remove('d-none');
+                    return;
+                }
+
+                document.getElementById('snapshotInfo').textContent =
+                    `快照时间：${formatSnapshotTime(json.snapshot_at)}（北京时间）`;
+
+                const leaderboard = json.leaderboard || {};
+
+                renderCategory('长线游玩', leaderboard['长线游玩']);
+                renderCategory('轻量趣味', leaderboard['轻量趣味']);
+
+                document.getElementById('leaderboardContent').classList.remove('d-none');
+            } catch (e) {
+                console.error('Failed to load leaderboard:', e);
+                document.getElementById('loadingState').classList.add('d-none');
+                document.getElementById('errorMessage').textContent = `加载失败：${e.message}`;
+                document.getElementById('errorState').classList.remove('d-none');
+            }
+        }
+
+        loadLeaderboard();
+    </script>
+</body>
+
+</html>

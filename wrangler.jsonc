@@ -37,7 +37,8 @@
 	],
 	"triggers": {
 		"crons": [
-			"* * * * *"
+			"* * * * *",
+			"0 20 * * *"
 		]
 	},
 	"analytics_engine_datasets": [

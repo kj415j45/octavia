@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS stage_cache (
     name TEXT,
     intro TEXT,
     description TEXT,
+    good_rate TEXT,
+    category TEXT,
     data TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     expires_at INTEGER NOT NULL,
@@ -34,6 +36,9 @@ CREATE INDEX IF NOT EXISTS idx_stage_cache_rotate_at ON stage_cache(rotate_at AS
 -- 为stage_cache表的主键创建唯一索引
 CREATE UNIQUE INDEX IF NOT EXISTS idx_stage_cache_pk ON stage_cache(region, stage_id);
 
+-- 排行榜复合索引：按 region + category 过滤，按 good_rate 排序
+CREATE INDEX IF NOT EXISTS idx_stage_cache_leaderboard ON stage_cache(region, category, good_rate);
+
 -- 作者信息表：存储作者详细信息
 CREATE TABLE IF NOT EXISTS author (
     uid TEXT NOT NULL PRIMARY KEY,
@@ -45,3 +50,23 @@ CREATE TABLE IF NOT EXISTS author (
 
 -- 为author表的主键创建唯一索引
 CREATE UNIQUE INDEX IF NOT EXISTS idx_author_pk ON author(uid);
+
+-- 好评率排行榜表：存储每日定时生成的奇域 good_rate 排名快照
+CREATE TABLE IF NOT EXISTS goodrate_leaderboard (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    snapshot_at INTEGER NOT NULL,
+    category TEXT NOT NULL,
+    rank_type TEXT NOT NULL,
+    rank INTEGER NOT NULL,
+    region TEXT NOT NULL,
+    stage_id TEXT NOT NULL,
+    good_rate TEXT NOT NULL,
+    name TEXT,
+    uid TEXT
+);
+
+-- 按快照时间查询最新榜单
+CREATE INDEX IF NOT EXISTS idx_leaderboard_snapshot ON goodrate_leaderboard(snapshot_at DESC);
+
+-- 按快照时间 + 分类 + 榜单类型快速检索
+CREATE INDEX IF NOT EXISTS idx_leaderboard_query ON goodrate_leaderboard(snapshot_at DESC, category, rank_type, rank);

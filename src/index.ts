@@ -3,6 +3,7 @@ import { searchStages } from './apis/stage_search';
 import { StageNotFoundError } from './octavia';
 import { getStatusData } from './apis/status';
 import { getAuthorInfo } from './apis/author';
+import { getLeaderboard } from './apis/leaderboard';
 import { runScheduled } from './scheduled';
 import { Global } from './global';
 import { taggedLogger } from './logger';
@@ -61,6 +62,10 @@ export default {
 						const data = await getAuthorInfo(id);
 						return JSONResponse(data);
 					}
+					case 'leaderboard': {
+						const data = await getLeaderboard();
+						return JSONResponse(data);
+					}
 					default: {
 						return new Response('API endpoint not found', { status: 404 });
 					}
@@ -79,7 +84,7 @@ export default {
 		Global.setCtx(ctx);
 
 		try {
-			await runScheduled();
+			await runScheduled(controller.cron);
 		} catch (e) {
 			logger.error('Unhandled scheduled error:', e);
 			throw e;
