@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh" data-bs-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>维护 - Octavia</title>
+    <link rel="icon" href="./favicon.ico" />
+    <link rel="stylesheet" href="./lib/bootstrap.min.css" />
+    <link rel="stylesheet" href="./lib/font.css" />
+    <script src="./lib/common.js"></script>
+    <style>
+        .result-box {
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+        .totp-input {
+            letter-spacing: 0.4em;
+            font-size: 1.6rem;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+    <header>
+        <nav class="navbar bg-body-tertiary">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">欧科塔维亚 - 维护</span>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container mt-4 mb-5" style="max-width:800px">
+
+        <!-- ── 批量强制刷新缓存 ── -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">批量强制刷新缓存</h5></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">服务器</label>
+                    <select id="flushRegion" class="form-select">
+                        <option value="">加载中…</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">奇域 ID 列表 <span class="text-muted">(每行一个)</span></label>
+                    <textarea id="flushStageIds" class="form-control font-monospace" rows="5"
+                        placeholder="例：&#10;1234&#10;5678&#10;9012"></textarea>
+                </div>
+                <button class="btn btn-warning" onclick="triggerAction('flush_cache')">强制刷新缓存</button>
+                <div id="flushResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- ── 手动触发排行榜更新 ── -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">排行榜更新</h5></div>
+            <div class="card-body">
+                <p class="text-muted mb-3">手动触发好评率排行榜重新计算（通常由定时任务每日执行）。</p>
+                <button class="btn btn-primary" onclick="triggerAction('update_leaderboard')">立即更新排行榜</button>
+                <div id="leaderboardResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- ── 查看 / 编辑 KV 记录 ── -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">查看 / 编辑 KV 记录</h5></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Hash</label>
+                    <input id="editKvHash" type="text" class="form-control font-monospace"
+                        placeholder="输入 KV 键名 (hash)" />
+                </div>
+                <button class="btn btn-secondary mb-3" onclick="triggerAction('get_kv')">查询</button>
+                <div id="editKvValueWrap" class="mb-3" style="display:none">
+                    <label class="form-label">值</label>
+                    <textarea id="editKvValue" class="form-control font-monospace" rows="6"></textarea>
+                    <div class="mt-2">
+                        <button class="btn btn-success" onclick="triggerAction('set_kv_edit')">保存修改</button>
+                    </div>
+                </div>
+                <div id="editKvResult" class="mt-2"></div>
+            </div>
+        </div>
+
+        <!-- ── 新增 KV 记录 ── -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">新增 KV 记录</h5></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Hash</label>
+                    <input id="addKvHash" type="text" class="form-control font-monospace"
+                        placeholder="输入 KV 键名 (hash)" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">值</label>
+                    <textarea id="addKvValue" class="form-control font-monospace" rows="6"
+                        placeholder="输入要存储的内容"></textarea>
+                </div>
+                <button class="btn btn-success" onclick="triggerAction('add_kv')">新增记录</button>
+                <div id="addKvResult" class="mt-3"></div>
+            </div>
+        </div>
+
+    </div><!-- /container -->
+
+    <!-- ── TOTP 验证模态框 ── -->
+    <div class="modal fade" id="totpModal" tabindex="-1" aria-labelledby="totpModalLabel" aria-modal="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="totpModalLabel">身份验证</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">请输入 TOTP 验证码以继续操作。</p>
+                    <input id="totpInput" type="text" inputmode="numeric" pattern="\d{6}"
+                        maxlength="6" autocomplete="one-time-code"
+                        class="form-control totp-input" placeholder="000000" />
+                    <div id="totpError" class="text-danger small mt-2" style="display:none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="totpSubmit">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./lib/bootstrap.bundle.min.js"></script>
+    <script>
+    (() => {
+        'use strict';
+
+        const API = '/api/maintain';
+        let pendingResolve = null;
+        let pendingReject = null;
+
+        // ── 从 regions.json 填充服务器下拉 ─────────────────────────────────
+        getRegionMap()
+            .then(() => {
+                const sel = document.getElementById('flushRegion');
+                sel.innerHTML = '';
+                for (const [id, info] of Object.entries(regionMap)) {
+                    const opt = document.createElement('option');
+                    opt.value = id;
+                    opt.textContent = `${info.name} (${id})`;
+                    sel.appendChild(opt);
+                }
+            })
+            .catch(() => {
+                const sel = document.getElementById('flushRegion');
+                sel.innerHTML = '<option value="">加载失败，请刷新</option>';
+            });
+
+        const totpModalEl = document.getElementById('totpModal');
+        const totpModal = new bootstrap.Modal(totpModalEl, { backdrop: 'static', keyboard: false });
+        const totpInput = document.getElementById('totpInput');
+        const totpError = document.getElementById('totpError');
+        const totpSubmit = document.getElementById('totpSubmit');
+
+        // 每次打开时清空
+        totpModalEl.addEventListener('show.bs.modal', () => {
+            totpInput.value = '';
+            totpError.style.display = 'none';
+            totpInput.focus();
+        });
+
+        // 回车提交
+        totpInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') totpSubmit.click();
+        });
+
+        totpSubmit.addEventListener('click', () => {
+            const code = totpInput.value.trim();
+            if (!/^\d{6}$/.test(code)) {
+                showTotpError('请输入 6 位数字验证码');
+                return;
+            }
+            if (pendingResolve) {
+                pendingResolve(code);
+                pendingResolve = null;
+                pendingReject = null;
+            }
+            totpModal.hide();
+        });
+
+        totpModalEl.addEventListener('hidden.bs.modal', () => {
+            if (pendingReject) {
+                pendingReject(new Error('cancelled'));
+                pendingResolve = null;
+                pendingReject = null;
+            }
+        });
+
+        function showTotpError(msg) {
+            totpError.textContent = msg;
+            totpError.style.display = '';
+        }
+
+        /** 弹出 TOTP 框并返回 Promise<code> */
+        function askTotp() {
+            return new Promise((resolve, reject) => {
+                pendingResolve = resolve;
+                pendingReject = reject;
+                totpModal.show();
+            });
+        }
+
+        /** 调用维护接口（自动追加 totp） */
+        async function callApi(payload) {
+            const totp = await askTotp();
+            const res = await fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...payload, totp }),
+            });
+            const data = await res.json();
+            return { ok: res.ok && data.ok, data };
+        }
+
+        /** 在指定容器中渲染结果 */
+        function renderResult(containerId, { ok, data }) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            const cls = ok ? 'text-success-emphasis bg-success-subtle border border-success-subtle'
+                           : 'text-danger-emphasis bg-danger-subtle border border-danger-subtle';
+            el.innerHTML = `<div class="rounded p-2 result-box ${cls}">${escHtml(JSON.stringify(data, null, 2))}</div>`;
+        }
+
+        function escHtml(s) {
+            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function setLoading(btnEl, loading) {
+            if (loading) {
+                btnEl.disabled = true;
+                btnEl._orig = btnEl.textContent;
+                btnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>执行中…';
+            } else {
+                btnEl.disabled = false;
+                btnEl.textContent = btnEl._orig || btnEl.textContent;
+            }
+        }
+
+        // ── 操作处理器 ─────────────────────────────────────────────────────────
+
+        const handlers = {
+            flush_cache: async (btn) => {
+                const region = document.getElementById('flushRegion').value;
+                const raw = document.getElementById('flushStageIds').value;
+                const stage_ids = raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+                if (!stage_ids.length) { alert('请输入至少一个关卡 ID'); return; }
+                const result = await callApi({ action: 'flush_cache', region, stage_ids });
+                renderResult('flushResult', result);
+            },
+
+            update_leaderboard: async (btn) => {
+                const result = await callApi({ action: 'update_leaderboard' });
+                renderResult('leaderboardResult', result);
+            },
+
+            get_kv: async (btn) => {
+                const hash = document.getElementById('editKvHash').value.trim();
+                if (!hash) { alert('请输入 Hash'); return; }
+                const result = await callApi({ action: 'get_kv', hash });
+                renderResult('editKvResult', result);
+                if (result.ok) {
+                    const wrap = document.getElementById('editKvValueWrap');
+                    const ta = document.getElementById('editKvValue');
+                    ta.value = result.data.value ?? '';
+                    wrap.style.display = '';
+                }
+            },
+
+            set_kv_edit: async (btn) => {
+                const hash = document.getElementById('editKvHash').value.trim();
+                const value = document.getElementById('editKvValue').value;
+                if (!hash) { alert('请先查询一条记录'); return; }
+                const result = await callApi({ action: 'set_kv', hash, value });
+                renderResult('editKvResult', result);
+            },
+
+            add_kv: async (btn) => {
+                const hash = document.getElementById('addKvHash').value.trim();
+                const value = document.getElementById('addKvValue').value;
+                if (!hash) { alert('请输入 Hash'); return; }
+                const result = await callApi({ action: 'set_kv', hash, value });
+                renderResult('addKvResult', result);
+                if (result.ok) {
+                    document.getElementById('addKvHash').value = '';
+                    document.getElementById('addKvValue').value = '';
+                }
+            },
+        };
+
+        // 统一入口：捕获 cancelled 不报错，TOTP 错误重新弹框
+        window.triggerAction = async (actionKey) => {
+            const btn = event?.currentTarget || document.activeElement;
+            setLoading(btn, true);
+            try {
+                await handlers[actionKey](btn);
+            } catch (e) {
+                if (e.message !== 'cancelled') {
+                    console.error(e);
+                    alert(`操作失败: ${e.message}`);
+                }
+            } finally {
+                setLoading(btn, false);
+            }
+        };
+    })();
+    </script>
+</body>
+</html>

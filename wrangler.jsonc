@@ -8,6 +8,13 @@
 	},
 	"workers_dev": false,
 	"preview_urls": false,
+	"secrets": {
+		"required": [
+			"ACCOUNT_ID",
+			"ANALYTICS_API_TOKEN",
+			"TOTP_SECRET",
+		],
+	},
 	"routes": [
 		{
 			"pattern": "octavia.kj415j45.space",
@@ -42,9 +49,9 @@
 		]
 	},
 	"analytics_engine_datasets": [
-    	{
+		{
 			"binding": "analytics",
 			"dataset": "octavia",
 		},
-  	],
+	],
 }

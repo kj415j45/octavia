@@ -4,6 +4,7 @@ import { StageNotFoundError } from './octavia';
 import { getStatusData } from './apis/status';
 import { getAuthorInfo } from './apis/author';
 import { getLeaderboard } from './apis/leaderboard';
+import { handleMaintain } from './apis/maintain';
 import { runScheduled } from './scheduled';
 import { Global } from './global';
 import { taggedLogger } from './logger';
@@ -19,6 +20,9 @@ export default {
 		}
 		try {
 			const url = new URL(request.url);
+			if (url.pathname === '/api/maintain' && request.method === 'POST') {
+				return await handleMaintain(request);
+			}
 			if (url.pathname.startsWith('/api/') && request.method === 'GET') {
 				const endpoint = url.pathname.replace('/api/', '');
 				switch (endpoint) {
