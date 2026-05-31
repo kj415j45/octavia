@@ -162,6 +162,22 @@ export async function handleMaintain(request: Request): Promise<Response> {
 			return jsonOk({ hash, message: 'KV 记录已保存' });
 		}
 
+		case 'search_author': {
+			const query = body.query as string;
+			if (!query || typeof query !== 'string' || query.trim() === '') {
+				return jsonError('需要 query 参数', 400);
+			}
+			const db = env.DB;
+			const pattern = `%${query.trim()}%`;
+			const rows = await db
+				.prepare(
+					'SELECT uid, name, ingame_name, avatar FROM author WHERE ingame_name LIKE ? LIMIT 30',
+				)
+				.bind(pattern)
+				.all();
+			return jsonOk({ results: rows.results });
+		}
+
 		default:
 			return jsonError(`未知操作: ${action}`, 400);
 	}
