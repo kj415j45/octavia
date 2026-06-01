@@ -120,6 +120,7 @@ export async function getStageInfo(region: string, stageId: string) {
 					'INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, name, intro, description, good_rate, category, deleted, data, created_at, expires_at, rotate_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)',
 				)
 				.bind(region, stageId, uid, name, intro, description, goodRate, category, JSON.stringify(result), createdAt, expiresAt, rotateAt)
+				.run();
 		// 更新作者信息表
 		if (uid && result?.author) {
 			const author = result.author;
