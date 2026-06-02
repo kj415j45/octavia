@@ -205,7 +205,13 @@ function makeStageCard(stage, options = {}) {
     
     // Add warning border for removed stages
     if (removed) {
-        card.style.border = '4px solid #dc3545';
+        if (status.upstream === null) {
+            // Cache records deleted but upstream timed out — orange-yellow
+            card.style.border = '4px solid #fd7e14';
+        } else {
+            // Upstream confirmed deletion — red
+            card.style.border = '4px solid #dc3545';
+        }
     }
 
     // Add preview image with click-to-fullscreen functionality
