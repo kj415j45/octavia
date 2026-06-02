@@ -97,8 +97,12 @@ async function generateStageImage(stages, options = {}) {
         stages.forEach((stage, index) => {
             const row = document.createElement('tr');
             const isRemoved = stage.status && stage.status.removed;
-            if (isRemoved) {
+            const isRemovedConfirmed = isRemoved && stage.status.upstream !== null;
+            const isRemovedTimeout = isRemoved && stage.status.upstream === null;
+            if (isRemovedConfirmed) {
                 row.style.backgroundColor = '#fff5f5';
+            } else if (isRemovedTimeout) {
+                row.style.backgroundColor = '#fffbf0';
             } else if (index % 2 === 1) {
                 row.style.backgroundColor = '#f8f9fa';
             }
@@ -286,13 +290,20 @@ async function generateStageImage(stages, options = {}) {
 
             tbody.appendChild(row);
 
-            // Apply red border to removed rows
-            if (isRemoved) {
+            // Apply colored border to removed rows
+            if (isRemovedConfirmed) {
                 Array.from(row.cells).forEach((cell, i) => {
                     cell.style.borderTop = '2px solid #dc3545';
                     cell.style.borderBottom = '2px solid #dc3545';
                     if (i === 0) cell.style.borderLeft = '2px solid #dc3545';
                     if (i === row.cells.length - 1) cell.style.borderRight = '2px solid #dc3545';
+                });
+            } else if (isRemovedTimeout) {
+                Array.from(row.cells).forEach((cell, i) => {
+                    cell.style.borderTop = '2px solid #fd7e14';
+                    cell.style.borderBottom = '2px solid #fd7e14';
+                    if (i === 0) cell.style.borderLeft = '2px solid #fd7e14';
+                    if (i === row.cells.length - 1) cell.style.borderRight = '2px solid #fd7e14';
                 });
             }
         });

@@ -7,7 +7,7 @@ const logger = taggedLogger('api:stage_info');
 type RequestStatus = {
 	cache: boolean; // 是否使用了缓存
 	upstream: boolean | null; // 上游是否可用，null表示未知（仅当cache为false时有效）
-	removed: boolean | null; // 是否已被下架（仅当upstream为true时有效）
+	removed: boolean | null; // 是否已被下架（upstream为true时表示上游确认删除，upstream为null时表示缓存记录已删除但上游未响应）
 };
 
 function getCachedStageTextFields(result: any) {
@@ -37,7 +37,7 @@ export async function getStageInfo(region: string, stageId: string) {
 	try {
 		const db = Global.getEnv().DB;
 		cached = await db
-			.prepare('SELECT data, created_at, expires_at FROM stage_cache WHERE region = ? AND stage_id = ?')
+			.prepare('SELECT data, created_at, expires_at, deleted FROM stage_cache WHERE region = ? AND stage_id = ?')
 			.bind(region, stageId)
 			.first();
 
@@ -85,6 +85,9 @@ export async function getStageInfo(region: string, stageId: string) {
 			logger.warn('API request timed out. Upstream status unknown.');
 			if (cached) {
 				logger.warn(`Using cache for stage ${stageId} in region ${region} due to timeout.`);
+				if (cached.deleted) {
+					status.removed = true;
+				}
 				const data = cached.data;
 				status.cache = true;
 				const ret = Object.assign(JSON.parse(data as string), { status });
