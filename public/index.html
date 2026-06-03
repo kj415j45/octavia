@@ -81,8 +81,14 @@
                             </div>
                         </div>
                         <div class="col-12 d-none" id="filterPlayersSliderRow">
-                            <label class="form-label fw-bold mb-1">游玩人数：<span id="filterPlayersSliderVal">2</span> 人</label>
-                            <input type="range" id="filterPlayersSlider" class="form-range" min="2" max="8" value="2" />
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="filterPlayersEnabled" />
+                                <label class="form-check-label" for="filterPlayersEnabled">启用人数过滤</label>
+                            </div>
+                            <div class="d-none" id="filterPlayersSliderControl">
+                                <label class="form-label fw-bold mb-1">游玩人数：<span id="filterPlayersSliderVal">2</span> 人</label>
+                                <input type="range" id="filterPlayersSlider" class="form-range" min="2" max="8" value="2" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -228,6 +234,18 @@
         let selectedCategory = null;
         let selectedPlayerMode = null; // 'solo' | 'optional' | 'multi' | null
 
+        function isPlayerCountFilterEnabled() {
+            return document.getElementById('filterPlayersEnabled').checked;
+        }
+
+        function syncPlayerCountFilterControls() {
+            const showPlayerCount = selectedPlayerMode === 'multi' || selectedPlayerMode === 'optional';
+            const isEnabled = showPlayerCount && isPlayerCountFilterEnabled();
+            document.getElementById('filterPlayersSliderRow').classList.toggle('d-none', !showPlayerCount);
+            document.getElementById('filterPlayersSliderControl').classList.toggle('d-none', !isEnabled);
+            document.getElementById('filterPlayersSlider').disabled = !isEnabled;
+        }
+
         function getFilteredStages() {
             const sliderVal = parseInt(document.getElementById('filterPlayersSlider').value) || 2;
             return $Stages.filter(stage => {
@@ -245,13 +263,11 @@
                 if (selectedPlayerMode === 'solo' && !(meta.players.min === 1 && meta.players.max === 1)) return false;
                 if (selectedPlayerMode === 'optional') {
                     if (!(meta.players.min === 1 && meta.players.max > 1)) return false;
-                    // Slider: stage must support this player count
-                    if (meta.players.min > sliderVal || meta.players.max < sliderVal) return false;
+                    if (isPlayerCountFilterEnabled() && (meta.players.min > sliderVal || meta.players.max < sliderVal)) return false;
                 }
                 if (selectedPlayerMode === 'multi') {
                     if (!(meta.players.min > 1)) return false;
-                    // Slider: stage must support this player count
-                    if (meta.players.min > sliderVal || meta.players.max < sliderVal) return false;
+                    if (isPlayerCountFilterEnabled() && (meta.players.min > sliderVal || meta.players.max < sliderVal)) return false;
                 }
                 return true;
             });
@@ -349,12 +365,19 @@
             sliderEl.parentNode.replaceChild(newSlider, sliderEl);
             newSlider.value = 2;
             document.getElementById('filterPlayersSliderVal').textContent = '2';
+            newSlider.disabled = true;
             newSlider.addEventListener('input', () => {
                 document.getElementById('filterPlayersSliderVal').textContent = newSlider.value;
                 applyFilters();
             });
-            // Hide slider row initially
-            document.getElementById('filterPlayersSliderRow').classList.add('d-none');
+            const playerCountCheckboxEl = document.getElementById('filterPlayersEnabled');
+            const newPlayerCountCheckbox = playerCountCheckboxEl.cloneNode(true);
+            playerCountCheckboxEl.parentNode.replaceChild(newPlayerCountCheckbox, playerCountCheckboxEl);
+            newPlayerCountCheckbox.checked = false;
+            newPlayerCountCheckbox.addEventListener('change', () => {
+                syncPlayerCountFilterControls();
+                applyFilters();
+            });
             // Player mode buttons — mutual exclusion
             selectedPlayerMode = null;
             document.querySelectorAll('.filter-player-mode-btn').forEach(btn => {
@@ -377,11 +400,12 @@
                         newBtn.classList.remove('btn-outline-secondary');
                         newBtn.classList.add('btn-info');
                     }
-                    // Show slider for multi and optional modes
-                    document.getElementById('filterPlayersSliderRow').classList.toggle('d-none', selectedPlayerMode !== 'multi' && selectedPlayerMode !== 'optional');
+                    document.getElementById('filterPlayersEnabled').checked = false;
+                    syncPlayerCountFilterControls();
                     applyFilters();
                 });
             });
+            syncPlayerCountFilterControls();
             // Reset toggle state to expanded
             document.getElementById('filterBody').style.display = '';
             document.getElementById('filterToggleBtn').textContent = '收起';
