@@ -3,7 +3,7 @@ import { Global } from './global';
 import { taggedLogger } from './logger';
 
 const MAX_BACKOFF = 7 * 24 * 3600; // 最大退避时间：7天
-const ROTATE_BATCH_SIZE = 5;
+export const ROTATE_BATCH_SIZE = 5;
 const logger = taggedLogger('scheduled');
 
 export async function runScheduled(cron?: string) {

@@ -1,5 +1,5 @@
 import { getStageInfo } from './stage_info';
-import { updateLeaderboard } from '../scheduled';
+import { updateLeaderboard, ROTATE_BATCH_SIZE } from '../scheduled';
 import { Regions } from '../octavia';
 import { Global } from '../global';
 import { taggedLogger } from '../logger';
@@ -176,6 +176,84 @@ export async function handleMaintain(request: Request): Promise<Response> {
 				.bind(pattern)
 				.all();
 			return jsonOk({ results: rows.results });
+		}
+
+		case 'stats': {
+			const db = env.DB;
+			const now = Math.floor(Date.now() / 1000);
+			const metric = body.metric as string;
+
+			switch (metric) {
+				case 'total': {
+					const res = await db.prepare('SELECT COUNT(*) AS c FROM stage_cache').first<{ c: number }>();
+					return jsonOk({ metric, value: Number(res?.c ?? 0) });
+				}
+
+				case 'new_24h': {
+					const dayAgo = now - 86400;
+					const res = await db
+						.prepare('SELECT COUNT(*) AS c FROM stage_cache WHERE created_at >= ?')
+						.bind(dayAgo)
+						.first<{ c: number }>();
+					return jsonOk({ metric, value: Number(res?.c ?? 0) });
+				}
+
+				case 'rotate_backlog': {
+					const res = await db
+						.prepare('SELECT COUNT(*) AS c FROM stage_cache WHERE rotate_at <= ?')
+						.bind(now)
+						.first<{ c: number }>();
+					const backlog = Number(res?.c ?? 0);
+					// 滚动更新：Cron 每分钟处理 ROTATE_BATCH_SIZE 条
+					const rate_per_minute = ROTATE_BATCH_SIZE;
+					const eta_minutes = backlog > 0 ? Math.ceil(backlog / rate_per_minute) : 0;
+					return jsonOk({
+						metric,
+						value: backlog,
+						rate_per_minute,
+						eta_minutes,
+						eta_at: eta_minutes > 0 ? now + eta_minutes * 60 : 0,
+					});
+				}
+
+				case 'deleted': {
+					const res = await db
+						.prepare('SELECT COUNT(*) AS deleted, (SELECT COUNT(*) FROM stage_cache) AS total FROM stage_cache WHERE deleted = 1')
+						.first<{ deleted: number; total: number }>();
+					const deleted = Number(res?.deleted ?? 0);
+					const total = Number(res?.total ?? 0);
+					return jsonOk({
+						metric,
+						value: deleted,
+						total,
+						percent: total > 0 ? (deleted / total) * 100 : 0,
+					});
+				}
+
+				case 'authors': {
+					const res = await db.prepare('SELECT COUNT(*) AS c FROM author').first<{ c: number }>();
+					return jsonOk({ metric, value: Number(res?.c ?? 0) });
+				}
+
+				case 'by_region': {
+					const rows = await db
+						.prepare('SELECT region, COUNT(*) AS c FROM stage_cache GROUP BY region ORDER BY c DESC')
+						.all();
+					return jsonOk({ metric, rows: rows.results ?? [] });
+				}
+
+				case 'by_category': {
+					const rows = await db
+						.prepare(
+							"SELECT COALESCE(category, '(未分类)') AS category, COUNT(*) AS c FROM stage_cache GROUP BY category ORDER BY c DESC",
+						)
+						.all();
+					return jsonOk({ metric, rows: rows.results ?? [] });
+				}
+
+				default:
+					return jsonError(`未知统计项: ${metric}`, 400);
+			}
 		}
 
 		default:

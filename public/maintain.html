@@ -68,24 +68,24 @@
             </div>
         </div>
 
-        <!-- ── 查看 / 编辑 KV 记录 ── -->
+        <!-- ── KV 记录（查询 / 新增 / 修改） ── -->
         <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">查看 / 编辑 KV 记录</h5></div>
+            <div class="card-header"><h5 class="mb-0">KV 记录管理</h5></div>
             <div class="card-body">
+                <p class="text-muted small mb-3">输入 Hash 后可「查询」已有记录；编辑下方的值并「保存」即可写入（新增或覆盖）。</p>
                 <div class="mb-3">
                     <label class="form-label">Hash</label>
-                    <input id="editKvHash" type="text" class="form-control font-monospace"
+                    <input id="kvHash" type="text" class="form-control font-monospace"
                         placeholder="输入 KV 键名 (hash)" />
                 </div>
-                <button class="btn btn-secondary mb-3" onclick="triggerAction('get_kv')">查询</button>
-                <div id="editKvValueWrap" class="mb-3" style="display:none">
+                <div class="mb-3">
                     <label class="form-label">值</label>
-                    <textarea id="editKvValue" class="form-control font-monospace" rows="6"></textarea>
-                    <div class="mt-2">
-                        <button class="btn btn-success" onclick="triggerAction('set_kv_edit')">保存修改</button>
-                    </div>
+                    <textarea id="kvValue" class="form-control font-monospace" rows="6"
+                        placeholder="输入要存储的内容（查询后会自动填充）"></textarea>
                 </div>
-                <div id="editKvResult" class="mt-2"></div>
+                <button class="btn btn-secondary" onclick="triggerAction('get_kv')">查询</button>
+                <button class="btn btn-success" onclick="triggerAction('save_kv')">保存</button>
+                <div id="kvResult" class="mt-3"></div>
             </div>
         </div>
 
@@ -103,22 +103,62 @@
             </div>
         </div>
 
-        <!-- ── 新增 KV 记录 ── -->
+        <!-- ── 统计数据 ── -->
         <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">新增 KV 记录</h5></div>
+            <div class="card-header"><h5 class="mb-0">统计数据</h5></div>
             <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">Hash</label>
-                    <input id="addKvHash" type="text" class="form-control font-monospace"
-                        placeholder="输入 KV 键名 (hash)" />
+                <p class="text-muted small mb-3">每项统计需单独请求获取（每次请求会触发一次 TOTP 验证与一次数据库查询）。</p>
+                <div class="list-group">
+                    <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <div class="fw-semibold">当前总奇域数量</div>
+                            <div id="stat_total" class="text-muted small">未获取</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="triggerAction('stat_total')">获取</button>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <div class="fw-semibold">24 小时内新增</div>
+                            <div id="stat_new_24h" class="text-muted small">未获取</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="triggerAction('stat_new_24h')">获取</button>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <div class="fw-semibold">滚动更新积压量</div>
+                            <div id="stat_rotate_backlog" class="text-muted small">未获取</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="triggerAction('stat_rotate_backlog')">获取</button>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <div class="fw-semibold">已知下架奇域</div>
+                            <div id="stat_deleted" class="text-muted small">未获取</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="triggerAction('stat_deleted')">获取</button>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <div class="fw-semibold">已收录作者数量</div>
+                            <div id="stat_authors" class="text-muted small">未获取</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="triggerAction('stat_authors')">获取</button>
+                    </div>
+                    <div class="list-group-item flex-wrap gap-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="fw-semibold">各区域奇域数量分布</div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="triggerAction('stat_by_region')">获取</button>
+                        </div>
+                        <div id="stat_by_region" class="text-muted small mt-2">未获取</div>
+                    </div>
+                    <div class="list-group-item flex-wrap gap-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="fw-semibold">各分类奇域数量分布</div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="triggerAction('stat_by_category')">获取</button>
+                        </div>
+                        <div id="stat_by_category" class="text-muted small mt-2">未获取</div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">值</label>
-                    <textarea id="addKvValue" class="form-control font-monospace" rows="6"
-                        placeholder="输入要存储的内容"></textarea>
-                </div>
-                <button class="btn btn-success" onclick="triggerAction('add_kv')">新增记录</button>
-                <div id="addKvResult" class="mt-3"></div>
             </div>
         </div>
 
@@ -252,6 +292,50 @@
             return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         }
 
+        // ── 统计渲染 ─────────────────────────────────────────────────────────
+        function fmtDuration(minutes) {
+            if (!minutes || minutes <= 0) return '无积压';
+            const d = Math.floor(minutes / 1440);
+            const h = Math.floor((minutes % 1440) / 60);
+            const m = Math.floor(minutes % 60);
+            const parts = [];
+            if (d) parts.push(`${d} 天`);
+            if (h) parts.push(`${h} 小时`);
+            if (m || parts.length === 0) parts.push(`${m} 分钟`);
+            return parts.join(' ');
+        }
+
+        function fmtTime(ts) {
+            if (!ts) return '—';
+            return new Date(ts * 1000).toLocaleString('zh-CN', { hour12: false });
+        }
+
+        function distTable(title, rows, keyName) {
+            if (!rows || rows.length === 0) return '<span class="text-muted">无数据</span>';
+            const body = rows.map(r => {
+                const key = regionMap?.[r[keyName]]?.name
+                    ? `${escHtml(regionMap[r[keyName]].name)} <span class="text-muted">(${escHtml(String(r[keyName]))})</span>`
+                    : escHtml(String(r[keyName] ?? '—'));
+                return `<tr><td>${key}</td><td class="text-end">${Number(r.c).toLocaleString()}</td></tr>`;
+            }).join('');
+            return `<div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <tbody>${body}</tbody>
+                </table>
+            </div>`;
+        }
+
+        /** 请求单项统计并将结果文本写入对应容器 */
+        async function fetchStat(metric, containerId, renderFn) {
+            const result = await callApi({ action: 'stats', metric });
+            const el = document.getElementById(containerId);
+            if (!result.ok) {
+                el.innerHTML = `<span class="text-danger">${escHtml(result.data?.error || '获取失败')}</span>`;
+                return;
+            }
+            el.innerHTML = renderFn(result.data);
+        }
+
         function setLoading(btnEl, loading) {
             if (loading) {
                 btnEl.disabled = true;
@@ -281,36 +365,56 @@
             },
 
             get_kv: async (btn) => {
-                const hash = document.getElementById('editKvHash').value.trim();
+                const hash = document.getElementById('kvHash').value.trim();
                 if (!hash) { alert('请输入 Hash'); return; }
                 const result = await callApi({ action: 'get_kv', hash });
-                renderResult('editKvResult', result);
+                renderResult('kvResult', result);
                 if (result.ok) {
-                    const wrap = document.getElementById('editKvValueWrap');
-                    const ta = document.getElementById('editKvValue');
-                    ta.value = result.data.value ?? '';
-                    wrap.style.display = '';
+                    document.getElementById('kvValue').value = result.data.value ?? '';
                 }
             },
 
-            set_kv_edit: async (btn) => {
-                const hash = document.getElementById('editKvHash').value.trim();
-                const value = document.getElementById('editKvValue').value;
-                if (!hash) { alert('请先查询一条记录'); return; }
-                const result = await callApi({ action: 'set_kv', hash, value });
-                renderResult('editKvResult', result);
-            },
-
-            add_kv: async (btn) => {
-                const hash = document.getElementById('addKvHash').value.trim();
-                const value = document.getElementById('addKvValue').value;
+            save_kv: async (btn) => {
+                const hash = document.getElementById('kvHash').value.trim();
+                const value = document.getElementById('kvValue').value;
                 if (!hash) { alert('请输入 Hash'); return; }
                 const result = await callApi({ action: 'set_kv', hash, value });
-                renderResult('addKvResult', result);
-                if (result.ok) {
-                    document.getElementById('addKvHash').value = '';
-                    document.getElementById('addKvValue').value = '';
-                }
+                renderResult('kvResult', result);
+            },
+
+            stat_total: async (btn) => {
+                await fetchStat('total', 'stat_total', d => `<span class="fs-5 fw-bold text-body">${Number(d.value).toLocaleString()}</span>`);
+            },
+
+            stat_new_24h: async (btn) => {
+                await fetchStat('new_24h', 'stat_new_24h', d => `<span class="fs-5 fw-bold text-body">${Number(d.value).toLocaleString()}</span>`);
+            },
+
+            stat_rotate_backlog: async (btn) => {
+                await fetchStat('rotate_backlog', 'stat_rotate_backlog', d => {
+                    const n = Number(d.value).toLocaleString();
+                    if (d.value <= 0) {
+                        return `<span class="fs-5 fw-bold text-body">0</span> · 无积压（处理速率 ${d.rate_per_minute} 条/分钟）`;
+                    }
+                    return `<span class="fs-5 fw-bold text-body">${n}</span> · 约 ${d.rate_per_minute} 条/分钟，预计 ${fmtDuration(d.eta_minutes)}<br>预期完成：${fmtTime(d.eta_at)}`;
+                });
+            },
+
+            stat_deleted: async (btn) => {
+                await fetchStat('deleted', 'stat_deleted', d =>
+                    `<span class="fs-5 fw-bold text-body">${Number(d.value).toLocaleString()}</span> · 占总数 ${Number(d.percent).toFixed(2)}%（共 ${Number(d.total).toLocaleString()}）`);
+            },
+
+            stat_authors: async (btn) => {
+                await fetchStat('authors', 'stat_authors', d => `<span class="fs-5 fw-bold text-body">${Number(d.value).toLocaleString()}</span>`);
+            },
+
+            stat_by_region: async (btn) => {
+                await fetchStat('by_region', 'stat_by_region', d => distTable('', d.rows, 'region'));
+            },
+
+            stat_by_category: async (btn) => {
+                await fetchStat('by_category', 'stat_by_category', d => distTable('', d.rows, 'category'));
             },
 
             search_author: async (btn) => {

@@ -57,6 +57,10 @@ if (!validRegions.includes(region as Regions)) {
 - TOTP 使用 RFC 6238，时间步长 30s，±2 步容差（±60 秒窗口），通过 `crypto.subtle` 实现，不依赖外部库。
 - 所有 `action` 分支均需校验必要参数，缺参数时返回 400。
 
+## maintain.ts
+
+- 同类功能归并到同一 `action` 分支，避免过多分散的 `action`。
+
 ## 响应辅助函数
 
 `maintain.ts` 内定义了 `jsonOk()` / `jsonError()` 局部辅助函数，仅供该模块使用。  
