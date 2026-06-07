@@ -20,11 +20,21 @@ function getCachedStageTextFields(result: any) {
 	};
 }
 
+function normalizeStageId(stageId: string): string {
+	const trimmedStageId = stageId.trim();
+	if (/^0+\d+$/.test(trimmedStageId)) {
+		return trimmedStageId.replace(/^0+/, '') || '0';
+	}
+	return trimmedStageId;
+}
+
 export async function getStageInfo(region: string, stageId: string) {
 	const validRegions = Object.values(Regions);
 	if (!validRegions.includes(region as Regions)) {
 		throw new Error(`Invalid region: ${region}. Valid regions are: ${validRegions.join(', ')}`);
 	}
+
+	const normalizedStageId = normalizeStageId(stageId);
 
 	const status: RequestStatus = {
 		cache: false,
@@ -38,7 +48,7 @@ export async function getStageInfo(region: string, stageId: string) {
 		const db = Global.getEnv().DB;
 		cached = await db
 			.prepare('SELECT data, created_at, expires_at, deleted FROM stage_cache WHERE region = ? AND stage_id = ?')
-			.bind(region, stageId)
+			.bind(region, normalizedStageId)
 			.first();
 
 		if (cached) {
@@ -59,18 +69,18 @@ export async function getStageInfo(region: string, stageId: string) {
 	let result: any;
 	try {
 		status.upstream = true;
-		result = await octavia.getStageInfo(region as Regions, stageId);
+		result = await octavia.getStageInfo(region as Regions, normalizedStageId);
 		status.removed = false;
 	} catch (error) {
 		if (error instanceof StageNotFoundError) {
 			status.removed = true;
 			if (cached) {
-				logger.warn(`Stage ${stageId} in region ${region} not found. Using cache.`);
+				logger.warn(`Stage ${normalizedStageId} in region ${region} not found. Using cache.`);
 				try {
 					const db = Global.getEnv().DB;
 					await db
 						.prepare('UPDATE stage_cache SET deleted = 1 WHERE region = ? AND stage_id = ?')
-						.bind(region, stageId)
+						.bind(region, normalizedStageId)
 						.run();
 				} catch (dbError) {
 					logger.error('Failed to mark stage as deleted:', dbError);
@@ -84,7 +94,7 @@ export async function getStageInfo(region: string, stageId: string) {
 			status.upstream = null; // 上游状态未知
 			logger.warn('API request timed out. Upstream status unknown.');
 			if (cached) {
-				logger.warn(`Using cache for stage ${stageId} in region ${region} due to timeout.`);
+				logger.warn(`Using cache for stage ${normalizedStageId} in region ${region} due to timeout.`);
 				if (cached.deleted) {
 					status.removed = true;
 				}
@@ -122,7 +132,7 @@ export async function getStageInfo(region: string, stageId: string) {
 			.prepare(
 					'INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, name, intro, description, good_rate, category, deleted, data, created_at, expires_at, rotate_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)',
 				)
-				.bind(region, stageId, uid, name, intro, description, goodRate, category, JSON.stringify(result), createdAt, expiresAt, rotateAt)
+				.bind(region, normalizedStageId, uid, name, intro, description, goodRate, category, JSON.stringify(result), createdAt, expiresAt, rotateAt)
 				.run();
 		// 更新作者信息表
 		if (uid && result?.author) {

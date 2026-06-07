@@ -489,7 +489,9 @@
 
             const pattern = /\d{5,}/g;
             const matches = stageIdsString.match(pattern);
-            let stageIds = matches || [];
+            let stageIds = (matches || [])
+                .map(id => id.replace(/^0+/, ''))
+                .filter(id => id.length > 0);
 
             stageIds = [...new Set(stageIds)];
             const progressState = createLoadingProgress(stageIds.length * searchRegions.length);
