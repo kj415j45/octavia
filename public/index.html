@@ -153,11 +153,11 @@
                 };
             }
 
-            if (/^\d+$/.test(trimmedValue)) {
+            if (/^\d{10,}$/.test(trimmedValue)) {
                 return { disableSubmit: false, message: '' };
             }
 
-            const matchedIds = trimmedValue.match(/\d+/g) || [];
+            const matchedIds = trimmedValue.match(/\d{10,}/g) || [];
             if (matchedIds.length > 1) {
                 return {
                     disableSubmit: true,
@@ -487,7 +487,7 @@
             hintsDiv.innerHTML = '';
             removeLoadingProgress();
 
-            const pattern = /\d{5,}/g;
+            const pattern = /\d{10,}/g;
             const matches = stageIdsString.match(pattern);
             let stageIds = (matches || [])
                 .map(id => id.replace(/^0+/, ''))
