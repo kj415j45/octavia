@@ -232,14 +232,27 @@
         // --- Filter state ---
         let selectedTags = new Set();
         let selectedCategory = null;
-        let selectedPlayerMode = null; // 'solo' | 'optional' | 'multi' | null
+        let selectedPlayerModes = new Set(); // 'solo' | 'optional' | 'multi'
 
         function isPlayerCountFilterEnabled() {
             return document.getElementById('filterPlayersEnabled').checked;
         }
 
+        function stageMatchesPlayerMode(meta, playerMode) {
+            if (playerMode === 'solo') {
+                return meta.players.min === 1 && meta.players.max === 1;
+            }
+            if (playerMode === 'optional') {
+                return meta.players.min === 1 && meta.players.max > 1;
+            }
+            if (playerMode === 'multi') {
+                return meta.players.min > 1;
+            }
+            return false;
+        }
+
         function syncPlayerCountFilterControls() {
-            const showPlayerCount = selectedPlayerMode === 'multi' || selectedPlayerMode === 'optional';
+            const showPlayerCount = selectedPlayerModes.has('multi') || selectedPlayerModes.has('optional');
             const isEnabled = showPlayerCount && isPlayerCountFilterEnabled();
             document.getElementById('filterPlayersSliderRow').classList.toggle('d-none', !showPlayerCount);
             document.getElementById('filterPlayersSliderControl').classList.toggle('d-none', !isEnabled);
@@ -260,14 +273,13 @@
                     if (meta.category !== selectedCategory) return false;
                 }
                 // Player mode filter
-                if (selectedPlayerMode === 'solo' && !(meta.players.min === 1 && meta.players.max === 1)) return false;
-                if (selectedPlayerMode === 'optional') {
-                    if (!(meta.players.min === 1 && meta.players.max > 1)) return false;
-                    if (isPlayerCountFilterEnabled() && (meta.players.min > sliderVal || meta.players.max < sliderVal)) return false;
-                }
-                if (selectedPlayerMode === 'multi') {
-                    if (!(meta.players.min > 1)) return false;
-                    if (isPlayerCountFilterEnabled() && (meta.players.min > sliderVal || meta.players.max < sliderVal)) return false;
+                if (selectedPlayerModes.size > 0) {
+                    if (![...selectedPlayerModes].some(playerMode => stageMatchesPlayerMode(meta, playerMode))) return false;
+                    if (
+                        isPlayerCountFilterEnabled() &&
+                        (selectedPlayerModes.has('optional') || selectedPlayerModes.has('multi')) &&
+                        (meta.players.min > sliderVal || meta.players.max < sliderVal)
+                    ) return false;
                 }
                 return true;
             });
@@ -379,7 +391,7 @@
                 applyFilters();
             });
             // Player mode buttons — mutual exclusion
-            selectedPlayerMode = null;
+            selectedPlayerModes = new Set();
             document.querySelectorAll('.filter-player-mode-btn').forEach(btn => {
                 btn.classList.remove('btn-info');
                 btn.classList.add('btn-outline-secondary');
@@ -387,16 +399,23 @@
                 btn.parentNode.replaceChild(newBtn, btn);
                 newBtn.addEventListener('click', () => {
                     const val = newBtn.dataset.value;
-                    if (selectedPlayerMode === val) {
-                        selectedPlayerMode = null;
+                    if (selectedPlayerModes.has(val)) {
+                        selectedPlayerModes.delete(val);
                         newBtn.classList.remove('btn-info');
                         newBtn.classList.add('btn-outline-secondary');
                     } else {
-                        selectedPlayerMode = val;
-                        document.querySelectorAll('.filter-player-mode-btn').forEach(b => {
-                            b.classList.remove('btn-info');
-                            b.classList.add('btn-outline-secondary');
-                        });
+                        if (val === 'solo') {
+                            selectedPlayerModes = new Set(['solo']);
+                            document.querySelectorAll('.filter-player-mode-btn').forEach(b => {
+                                b.classList.remove('btn-info');
+                                b.classList.add('btn-outline-secondary');
+                            });
+                        } else {
+                            selectedPlayerModes.delete('solo');
+                            document.querySelector('.filter-player-mode-btn[data-value="solo"]')?.classList.remove('btn-info');
+                            document.querySelector('.filter-player-mode-btn[data-value="solo"]')?.classList.add('btn-outline-secondary');
+                            selectedPlayerModes.add(val);
+                        }
                         newBtn.classList.remove('btn-outline-secondary');
                         newBtn.classList.add('btn-info');
                     }
