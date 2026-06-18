@@ -1,0 +1,569 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Octavia Public API",
+    "description": "Stage info uses `zh-cn` as default language.\n\n\nYou are free to use this API for any purpose, including commercial applications, without any restrictions. However, this API is provided \"as is\" without any warranty of any kind. It can be changed or discontinued without notice, and the provider is not liable for any damage or loss arising from its use.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://octavia.kj415j45.space"
+    }
+  ],
+  "paths": {
+    "/api/stage": {
+      "get": {
+        "summary": "Get stage details",
+        "description": "Returns stage details from cache or upstream.",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "query",
+            "required": true,
+            "description": "Region code.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cn_gf01",
+                "cn_qd01",
+                "os_cht",
+                "os_asia",
+                "os_euro",
+                "os_usa"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "description": "Stage ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stage details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stage not found in upstream and no usable cache.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Upstream unavailable or request failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/search/stage": {
+      "get": {
+        "summary": "Search stages by name",
+        "description": "Searches stage_cache by stage name (case-insensitive LIKE).",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Search keyword. Must not be empty after trimming.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "1-based page index. Invalid values are treated as 1.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageSearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or empty search keyword.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/author": {
+      "get": {
+        "summary": "Get author details",
+        "description": "Returns author profile and authored stage list. If id has no prefix, the server tries m{id} first and then h{id}.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "description": "Author ID, with optional prefix m or h. `m` stands for 米游社 (MYS) and `h` stands for HoYoLAB (HYL). For example, `m123456`, `h123456`. If prefix is omitted, the server will try both and return the first match. Note that author IDs are not guaranteed to be unique across platforms.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Author details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Invalid author id, author not found, or unhandled server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RequestStatus": {
+        "type": "object",
+        "properties": {
+          "cache": {
+            "type": "boolean",
+            "description": "Whether cache was used for this response."
+          },
+          "upstream": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Upstream availability. null means unknown (for example timeout with cache fallback)."
+          },
+          "removed": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Whether the stage is considered removed."
+          }
+        },
+        "required": [
+          "cache",
+          "upstream",
+          "removed"
+        ]
+      },
+      "StageResponse": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "type": "object",
+            "properties": {
+              "game": {
+                "type": "object",
+                "properties": {
+                  "avatar": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "name": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "avatar",
+                  "name"
+                ]
+              },
+              "mys": {
+                "type": "object",
+                "properties": {
+                  "aid": {
+                    "oneOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "name": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "aid",
+                  "avatar",
+                  "name"
+                ]
+              },
+              "hyl": {
+                "type": "object",
+                "properties": {
+                  "aid": {
+                    "oneOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "pendant": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "name": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "aid",
+                  "avatar",
+                  "pendant",
+                  "name"
+                ]
+              }
+            },
+            "required": [
+              "game",
+              "mys",
+              "hyl"
+            ]
+          },
+          "level": {
+            "type": "object",
+            "properties": {
+              "region": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "intro": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "players": {
+                    "type": "object",
+                    "properties": {
+                      "min": {
+                        "type": "integer"
+                      },
+                      "max": {
+                        "type": "integer"
+                      },
+                      "str": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "min",
+                      "max",
+                      "str"
+                    ]
+                  },
+                  "hotScore": {
+                    "type": "number"
+                  },
+                  "goodRate": {
+                    "type": "number"
+                  },
+                  "comments": {
+                    "type": "integer"
+                  },
+                  "cover": {
+                    "type": "object",
+                    "properties": {
+                      "images": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "videoCover": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "video": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "images",
+                      "videoCover",
+                      "video"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "description",
+                  "intro",
+                  "type",
+                  "category",
+                  "tags",
+                  "players",
+                  "hotScore",
+                  "goodRate",
+                  "comments",
+                  "cover"
+                ]
+              },
+              "version": {
+                "type": "object",
+                "properties": {
+                  "latest": {
+                    "type": "string"
+                  },
+                  "updateInfo": {
+                    "type": "string"
+                  },
+                  "changelog": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                },
+                "required": [
+                  "latest",
+                  "updateInfo",
+                  "changelog"
+                ]
+              }
+            },
+            "required": [
+              "region",
+              "id",
+              "meta",
+              "version"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/RequestStatus"
+          }
+        },
+        "required": [
+          "author",
+          "level",
+          "status"
+        ]
+      },
+      "StageSearchItem": {
+        "type": "object",
+        "properties": {
+          "region": {
+            "type": "string"
+          },
+          "stage_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "region",
+          "stage_id"
+        ]
+      },
+      "StageSearchResponse": {
+        "type": "object",
+        "properties": {
+          "next_page": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageSearchItem"
+            }
+          }
+        },
+        "required": [
+          "next_page",
+          "results"
+        ]
+      },
+      "AuthorStageItem": {
+        "type": "object",
+        "properties": {
+          "region": {
+            "type": "string"
+          },
+          "stageId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "region",
+          "stageId"
+        ]
+      },
+      "AuthorResponse": {
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingameName": {
+            "type": "string",
+            "nullable": true
+          },
+          "pendant": {
+            "type": "string",
+            "nullable": true
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthorStageItem"
+            }
+          }
+        },
+        "required": [
+          "uid",
+          "avatar",
+          "name",
+          "ingameName",
+          "pendant",
+          "stages"
+        ]
+      },
+      "BadRequestError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Search keyword is required"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "NotFoundError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "not_found"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "UpstreamError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "upstream_error"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      }
+    }
+  }
+}

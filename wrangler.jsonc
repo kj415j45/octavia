@@ -32,7 +32,7 @@
 		{
 			"binding": "kv",
 			"id": "7862944b92c14372b58ed6de050ef385",
-			"remote": true,
+			// "remote": true,
 		},
 	],
 	"d1_databases": [
