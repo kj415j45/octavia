@@ -5,6 +5,143 @@ const AUTO_DETECT_REGION = 'auto';
 let regionMap = {};
 let $Stages = [];
 
+// Storage utilities
+function createMemoryStorage() {
+    const map = new Map();
+    return {
+        get length() {
+            return map.size;
+        },
+        key(index) {
+            return Array.from(map.keys())[index] ?? null;
+        },
+        getItem(key) {
+            return map.has(key) ? map.get(key) : null;
+        },
+        setItem(key, value) {
+            map.set(String(key), String(value));
+        },
+        removeItem(key) {
+            map.delete(String(key));
+        },
+        clear() {
+            map.clear();
+        },
+    };
+}
+
+function isStorageAvailable(storage) {
+    if (!storage) {
+        return false;
+    }
+    try {
+        const probeKey = '__octavia_storage_probe__';
+        storage.setItem(probeKey, '1');
+        storage.removeItem(probeKey);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function createScopedStorage(namespace = 'octavia') {
+    const local = typeof window !== 'undefined' ? window.localStorage : null;
+    const backend = isStorageAvailable(local) ? local : createMemoryStorage();
+    const prefix = `${namespace}:`;
+
+    function scopedKey(key) {
+        return `${prefix}${key}`;
+    }
+
+    function has(key) {
+        return backend.getItem(scopedKey(key)) !== null;
+    }
+
+    function getRaw(key, fallback = null) {
+        const value = backend.getItem(scopedKey(key));
+        return value === null ? fallback : value;
+    }
+
+    function setRaw(key, value) {
+        backend.setItem(scopedKey(key), String(value));
+        return value;
+    }
+
+    function get(key, fallback = null) {
+        const raw = backend.getItem(scopedKey(key));
+        if (raw === null) {
+            return fallback;
+        }
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return fallback;
+        }
+    }
+
+    function set(key, value) {
+        backend.setItem(scopedKey(key), JSON.stringify(value));
+        return value;
+    }
+
+    function remove(key) {
+        backend.removeItem(scopedKey(key));
+    }
+
+    function keys() {
+        const result = [];
+        for (let i = 0; i < backend.length; i += 1) {
+            const fullKey = backend.key(i);
+            if (fullKey && fullKey.startsWith(prefix)) {
+                result.push(fullKey.slice(prefix.length));
+            }
+        }
+        return result;
+    }
+
+    function clear() {
+        keys().forEach((key) => {
+            backend.removeItem(scopedKey(key));
+        });
+    }
+
+    return {
+        namespace,
+        available: isStorageAvailable(local),
+        has,
+        get,
+        set,
+        getRaw,
+        setRaw,
+        remove,
+        keys,
+        clear,
+    };
+}
+
+window.OctaviaStorage = {
+    createStore: createScopedStorage,
+    settings: createScopedStorage('octavia:settings'),
+};
+
+const SETTINGS_KEYS = {
+    DATA_SAVER_MODE: 'dataSaverMode',
+};
+
+function isDataSaverModeEnabled() {
+    return window.OctaviaStorage.settings.get(SETTINGS_KEYS.DATA_SAVER_MODE, false) === true;
+}
+
+function setDataSaverModeEnabled(enabled) {
+    return window.OctaviaStorage.settings.set(SETTINGS_KEYS.DATA_SAVER_MODE, Boolean(enabled));
+}
+
+window.OctaviaSettings = {
+    keys: SETTINGS_KEYS,
+    isDataSaverModeEnabled,
+    setDataSaverModeEnabled,
+};
+
 // Region map utilities
 async function getRegionMap() {
     const response = await fetch(`${baseUrl}/data/regions.json`);
@@ -215,15 +352,16 @@ function makeStageCard(stage, options = {}) {
     }
 
     // Add preview image with click-to-fullscreen functionality
-    const previewContainer = document.createElement('div');
-    previewContainer.className = 'position-relative';
-    previewContainer.style.backgroundColor = '#f0f0f0';
+    if (!isDataSaverModeEnabled()) {
+        const previewContainer = document.createElement('div');
+        previewContainer.className = 'position-relative';
+        previewContainer.style.backgroundColor = '#f0f0f0';
 
-    const img = document.createElement('img');
-    img.src = meta.cover.images[0];
-    img.className = 'card-img-top';
-    img.alt = meta.name;
-    img.style.cursor = 'pointer';
+        const img = document.createElement('img');
+        img.src = meta.cover.images[0];
+        img.className = 'card-img-top';
+        img.alt = meta.name;
+        img.style.cursor = 'pointer';
 
     // Handle image load error
     img.addEventListener('error', () => {
@@ -378,8 +516,9 @@ function makeStageCard(stage, options = {}) {
         lazyImages.forEach(img => observer.observe(img));
     });
 
-    previewContainer.appendChild(img);
-    card.appendChild(previewContainer);
+        previewContainer.appendChild(img);
+        card.appendChild(previewContainer);
+    }
 
     // Create card body
     const cardBody = document.createElement('div');

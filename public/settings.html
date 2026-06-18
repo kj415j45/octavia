@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>设置 - Octavia</title>
+    <meta name="name" itemprop="name" content="设置 - Octavia" />
+    <meta name="description" itemprop="description" content="Octavia 前端本地设置。" />
+    <meta name="keywords" content="Octavia, 设置, 省流模式" />
+    <link rel="icon" href="/favicon.ico" />
+
+    <link rel="stylesheet" href="/lib/bootstrap.min.css" />
+    <link rel="stylesheet" href="/lib/font.css" />
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+    <header>
+        <nav class="navbar bg-body-tertiary">
+            <div class="container-fluid">
+                <a href="/" class="navbar-brand mb-0 h1">欧科塔维亚</a>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/index.html" class="btn btn-outline-secondary btn-sm" rel="noopener">奇域查询</a>
+                    <span class="text-muted">设置</span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mt-4 mb-5" style="max-width: 840px;">
+        <div class="mb-4">
+            <h2 class="mb-1">本地设置</h2>
+            <p class="text-muted mb-0">设置会保存在当前浏览器中，不会上传到服务器。</p>
+        </div>
+
+        <section class="card">
+            <div class="card-header">
+                <h5 class="mb-0">显示与流量</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="dataSaverSwitch" />
+                    <label class="form-check-label" for="dataSaverSwitch">省流模式</label>
+                </div>
+                <p class="text-muted small mb-0">开启后，奇域卡片将不再加载封面图片。</p>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span id="saveState" class="text-muted small">未修改</span>
+                <button id="resetButton" class="btn btn-outline-secondary btn-sm" type="button">恢复默认</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-auto">
+        <p class="text-center mb-1"><a href="/settings.html">设置</a> · <a href="https://github.com/kj415j45/octavia">GitHub</a></p>
+        <p class="text-center text-muted small">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
+    </footer>
+
+    <script src="/lib/bootstrap.bundle.min.js"></script>
+    <script src="/lib/common.js"></script>
+    <script>
+        const dataSaverSwitch = document.getElementById('dataSaverSwitch');
+        const saveState = document.getElementById('saveState');
+        const resetButton = document.getElementById('resetButton');
+
+        function renderState() {
+            const enabled = window.OctaviaSettings.isDataSaverModeEnabled();
+            dataSaverSwitch.checked = enabled;
+            saveState.textContent = `当前状态：${enabled ? '省流模式已开启' : '省流模式已关闭'}`;
+        }
+
+        function saveDataSaverState(enabled) {
+            window.OctaviaSettings.setDataSaverModeEnabled(enabled);
+            saveState.textContent = `已保存：${enabled ? '省流模式已开启' : '省流模式已关闭'}`;
+        }
+
+        dataSaverSwitch.addEventListener('change', (event) => {
+            saveDataSaverState(event.target.checked);
+        });
+
+        resetButton.addEventListener('click', () => {
+            saveDataSaverState(false);
+            renderState();
+        });
+
+        renderState();
+    </script>
+</body>
+
+</html>
