@@ -83,10 +83,14 @@
     <script src="/lib/bootstrap.bundle.min.js"></script>
     <script src="/lib/common.js"></script>
     <script>
+        const DISPLAY_PAGE_SIZE = 8;
+
         const pageState = {
             query: '',
-            page: 1,
-            nextPage: false,
+            displayPage: 1,
+            allResults: [],
+            nextBackendPage: false,
+            lastBackendPage: 0,
         };
 
         const keywordInput = document.getElementById('keywordInput');
@@ -99,6 +103,25 @@
         const paginationControls = document.querySelectorAll('.js-pagination-controls');
         const prevPageButtons = document.querySelectorAll('.js-prev-page-button');
         const nextPageButtons = document.querySelectorAll('.js-next-page-button');
+
+        function getDisplayResults() {
+            const start = (pageState.displayPage - 1) * DISPLAY_PAGE_SIZE;
+            return pageState.allResults.slice(start, start + DISPLAY_PAGE_SIZE);
+        }
+
+        function hasNextPage() {
+            return pageState.displayPage * DISPLAY_PAGE_SIZE < pageState.allResults.length
+                || pageState.nextBackendPage;
+        }
+
+        function hasPrevPage() {
+            return pageState.displayPage > 1;
+        }
+
+        function updateNavButtons() {
+            prevPageButtons.forEach((btn) => { btn.disabled = !hasPrevPage(); });
+            nextPageButtons.forEach((btn) => { btn.disabled = !hasNextPage(); });
+        }
 
         function updatePageIndicators(resultCount, pageNumber) {
             resultCountElements.forEach((element) => {
@@ -127,8 +150,8 @@
                 url.searchParams.delete('page');
             } else {
                 url.searchParams.set('q', pageState.query);
-                if (pageState.page > 1) {
-                    url.searchParams.set('page', `${pageState.page}`);
+                if (pageState.displayPage > 1) {
+                    url.searchParams.set('page', `${pageState.displayPage}`);
                 } else {
                     url.searchParams.delete('page');
                 }
@@ -137,20 +160,17 @@
         }
 
         function resetView() {
-            pageState.page = 1;
-            pageState.nextPage = false;
+            pageState.displayPage = 1;
+            pageState.allResults = [];
+            pageState.nextBackendPage = false;
+            pageState.lastBackendPage = 0;
             $Stages.length = 0;
             document.getElementById('results').innerHTML = '';
             emptyState.classList.add('d-none');
             updatePageIndicators(0, 0);
             setEmptyState('没有找到匹配的奇域', '试试更短的关键词再搜索。');
             togglePaginationControls(false);
-            prevPageButtons.forEach((button) => {
-                button.disabled = true;
-            });
-            nextPageButtons.forEach((button) => {
-                button.disabled = true;
-            });
+            updateNavButtons();
             syncUrl();
         }
 
@@ -161,12 +181,12 @@
         function setLoading(loading) {
             document.getElementById('loadingState').classList.toggle('d-none', !loading);
             searchButton.disabled = loading || !keywordInput.value.trim();
-            prevPageButtons.forEach((button) => {
-                button.disabled = loading || pageState.page <= 1;
-            });
-            nextPageButtons.forEach((button) => {
-                button.disabled = loading || !pageState.nextPage;
-            });
+            if (loading) {
+                prevPageButtons.forEach((btn) => { btn.disabled = true; });
+                nextPageButtons.forEach((btn) => { btn.disabled = true; });
+            } else {
+                updateNavButtons();
+            }
         }
 
         async function renderResults(results) {
@@ -177,7 +197,7 @@
             if (!results.length) {
                 emptyState.classList.remove('d-none');
                 togglePaginationControls(false);
-                updatePageIndicators(0, pageState.page > 1 ? pageState.page : 0);
+                updatePageIndicators(0, pageState.displayPage > 1 ? pageState.displayPage : 0);
                 return;
             }
 
@@ -196,7 +216,7 @@
                 setEmptyState('奇域加载失败', '搜索结果存在，但对应奇域详情暂时无法读取。');
                 emptyState.classList.remove('d-none');
                 togglePaginationControls(false);
-                updatePageIndicators(0, pageState.page > 1 ? pageState.page : 0);
+                updatePageIndicators(0, pageState.displayPage > 1 ? pageState.displayPage : 0);
                 return;
             }
 
@@ -213,26 +233,66 @@
             });
         }
 
-        async function loadPage(page = 1) {
-            if (!pageState.query) {
-                resetView();
-                return;
+        async function renderCurrentDisplayPage() {
+            const results = getDisplayResults();
+            updatePageIndicators(
+                results.length,
+                results.length > 0 || pageState.displayPage > 1 ? pageState.displayPage : 0
+            );
+            await renderResults(results);
+            updateNavButtons();
+        }
+
+        async function navigateToDisplayPage(targetPage) {
+            if (targetPage < 1) return;
+            pageState.displayPage = targetPage;
+            syncUrl();
+
+            const neededCount = targetPage * DISPLAY_PAGE_SIZE;
+            if (pageState.allResults.length < neededCount && pageState.nextBackendPage) {
+                setLoading(true);
+                try {
+                    while (pageState.allResults.length < neededCount && pageState.nextBackendPage) {
+                        const nextBackendPage = pageState.lastBackendPage + 1;
+                        const data = await searchStageDatabase(pageState.query, nextBackendPage);
+                        pageState.allResults.push(...(data.results || []));
+                        pageState.nextBackendPage = !!data.next_page;
+                        pageState.lastBackendPage = nextBackendPage;
+                    }
+                } catch (error) {
+                    console.error('Failed to load more results:', error);
+                    setEmptyState('加载失败', '请稍后重试。');
+                    emptyState.classList.remove('d-none');
+                    setLoading(false);
+                    return;
+                }
+                setLoading(false);
             }
-            pageState.page = page;
+
+            await renderCurrentDisplayPage();
+        }
+
+        async function performSearch(query) {
+            pageState.query = query;
+            pageState.displayPage = 1;
+            pageState.allResults = [];
+            pageState.nextBackendPage = false;
+            pageState.lastBackendPage = 0;
             syncUrl();
             setLoading(true);
 
             try {
-                const data = await searchStageDatabase(pageState.query, pageState.page);
-                pageState.nextPage = !!data.next_page;
-                updatePageIndicators(data.results.length, data.results.length > 0 || pageState.page > 1 ? pageState.page : 0);
-                await renderResults(data.results || []);
+                const data = await searchStageDatabase(query, 1);
+                pageState.allResults = data.results || [];
+                pageState.nextBackendPage = !!data.next_page;
+                pageState.lastBackendPage = 1;
+                await renderCurrentDisplayPage();
             } catch (error) {
                 console.error('Failed to search stage database:', error);
                 document.getElementById('results').innerHTML = '';
                 setEmptyState('加载失败', error?.message === 'Search keyword is required' ? '请输入有效关键词后再搜索。' : '请稍后重试。');
                 emptyState.classList.remove('d-none');
-                pageState.nextPage = false;
+                pageState.nextBackendPage = false;
                 togglePaginationControls(false);
                 updatePageIndicators(0, 0);
             } finally {
@@ -242,12 +302,15 @@
 
         document.getElementById('searchForm').addEventListener('submit', async (event) => {
             event.preventDefault();
-            pageState.query = keywordInput.value.trim();
-            if (!pageState.query) {
+            const query = keywordInput.value.trim();
+            if (!query) {
                 resetView();
                 return;
             }
-            await loadPage(1);
+            if (query.length < 2 && !window.confirm('关键字过少，仍要继续？')) {
+                return;
+            }
+            await performSearch(query);
         });
 
         keywordInput.addEventListener('input', () => {
@@ -260,16 +323,16 @@
 
         prevPageButtons.forEach((button) => {
             button.addEventListener('click', async () => {
-                if (pageState.page > 1) {
-                    await loadPage(pageState.page - 1);
+                if (hasPrevPage()) {
+                    await navigateToDisplayPage(pageState.displayPage - 1);
                 }
             });
         });
 
         nextPageButtons.forEach((button) => {
             button.addEventListener('click', async () => {
-                if (pageState.nextPage) {
-                    await loadPage(pageState.page + 1);
+                if (hasNextPage()) {
+                    await navigateToDisplayPage(pageState.displayPage + 1);
                 }
             });
         });
@@ -279,12 +342,27 @@
             const params = new URLSearchParams(window.location.search);
             const initialQuery = (params.get('q') || '').trim();
             const initialPage = Number.parseInt(params.get('page') || '1', 10);
+            const targetPage = (Number.isFinite(initialPage) && initialPage > 0) ? initialPage : 1;
 
             if (initialQuery) {
                 keywordInput.value = initialQuery;
                 pageState.query = initialQuery;
                 updateSearchButtonState();
-                await loadPage(Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1);
+                setLoading(true);
+                try {
+                    const data = await searchStageDatabase(initialQuery, 1);
+                    pageState.allResults = data.results || [];
+                    pageState.nextBackendPage = !!data.next_page;
+                    pageState.lastBackendPage = 1;
+                } catch (error) {
+                    console.error('Failed to init search:', error);
+                    setEmptyState('加载失败', '请稍后重试。');
+                    emptyState.classList.remove('d-none');
+                    setLoading(false);
+                    return;
+                }
+                setLoading(false);
+                await navigateToDisplayPage(targetPage);
                 return;
             }
 

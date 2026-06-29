@@ -1,6 +1,6 @@
 import { Global } from '../global';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 80;
 const FETCH_SIZE = PAGE_SIZE + 1;
 
 type SearchRow = {
