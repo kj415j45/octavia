@@ -230,6 +230,33 @@ function uidToGuid(uid, seq) {
     return guid.toString();
 }
 
+// 根据游戏内 UID 前缀推断所属服务器（见 https://genshin-impact.fandom.com/wiki/UID）
+// 1/2/3 → 天空岛(国服官服) 5 → 世界树(国服B服) 6 → 美服 7 → 欧服 8/18 → 亚服 9 → 港澳台
+// 0 开头为内部服务器，无对应公开区域，返回 null
+function uidToRegion(uid) {
+    const s = String(uid).trim();
+    if (!/^\d+$/.test(s)) return null;
+    if (s.length === 10 && s.startsWith('18')) return 'os_asia';
+    switch (s[0]) {
+        case '1':
+        case '2':
+        case '3':
+            return 'cn_gf01';
+        case '5':
+            return 'cn_qd01';
+        case '6':
+            return 'os_usa';
+        case '7':
+            return 'os_euro';
+        case '8':
+            return 'os_asia';
+        case '9':
+            return 'os_cht';
+        default:
+            return null;
+    }
+}
+
 function getStageKey(stage) {
     return `${stage.level.region}:${stage.level.id}`;
 }

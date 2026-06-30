@@ -103,6 +103,30 @@
             </div>
         </div>
 
+        <!-- ── 枚举作者奇域 ── -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">枚举作者奇域</h5></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">UID 或 GUID</label>
+                        <input id="enumInput" type="text" inputmode="numeric" class="form-control font-monospace"
+                            placeholder="自动识别 UID / guid" />
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">seq 起始</label>
+                        <input id="enumSeqStart" type="number" min="1" class="form-control" value="1" />
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">seq 结束</label>
+                        <input id="enumSeqEnd" type="number" min="1" class="form-control" value="20" />
+                    </div>
+                </div>
+                <button class="btn btn-primary mt-3" onclick="enumerateAuthorStages()">生成并打开查询</button>
+                <div id="enumResult" class="mt-3"></div>
+            </div>
+        </div>
+
         <!-- ── 统计数据 ── -->
         <div class="card mb-4">
             <div class="card-header"><h5 class="mb-0">统计数据</h5></div>
@@ -448,6 +472,60 @@
                 }).join('');
                 container.innerHTML = `<div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
             },
+        };
+
+        // ── 枚举作者奇域（纯本地计算，无需 TOTP） ───────────────────────────
+        // 自动识别输入：正常游戏内 UID 必然 < 2^32，guid（seq≥1）必然 >= 2^32，
+        // 据此判断输入是 UID 还是 guid。这里的 UID 是作者游戏内 UID，非账号 UID（aid）。
+        const MAX_ENUM_COUNT = 200;
+
+        window.enumerateAuthorStages = () => {
+            const container = document.getElementById('enumResult');
+            const raw = document.getElementById('enumInput').value.trim();
+            const seqStart = Number.parseInt(document.getElementById('enumSeqStart').value, 10);
+            const seqEnd = Number.parseInt(document.getElementById('enumSeqEnd').value, 10);
+
+            const fail = (msg) => {
+                container.innerHTML = `<div class="rounded p-2 result-box text-danger-emphasis bg-danger-subtle border border-danger-subtle">${escHtml(msg)}</div>`;
+            };
+
+            if (!/^\d+$/.test(raw)) { fail('请输入纯数字的 UID 或奇域 ID'); return; }
+            if (!Number.isInteger(seqStart) || !Number.isInteger(seqEnd) || seqStart < 1 || seqEnd < 1) {
+                fail('seq 范围必须为正整数'); return;
+            }
+            if (seqEnd < seqStart) { fail('seq 结束不能小于起始'); return; }
+            if (seqEnd - seqStart + 1 > MAX_ENUM_COUNT) {
+                fail(`seq 范围过大，单次最多生成 ${MAX_ENUM_COUNT} 个`); return;
+            }
+
+            let uid;
+            try {
+                const n = BigInt(raw);
+                // n >> 32 === 0 → 是 UID；否则视为 guid 并转换
+                uid = (n >> 32n) === 0n ? Number(n) : guidToUid(n).uid;
+            } catch (err) {
+                fail('无法解析输入的数字'); return;
+            }
+
+            // 根据 UID 前缀自动判断服务器
+            const region = uidToRegion(uid);
+            if (!region) {
+                fail(`无法根据 UID ${uid} 判断所属服务器（可能为内部服务器或无效 UID）`); return;
+            }
+            const regionName = (regionMap[region] && regionMap[region].name) || region;
+
+            const guids = [];
+            for (let seq = seqStart; seq <= seqEnd; seq++) {
+                guids.push(uidToGuid(uid, seq));
+            }
+
+            const params = new URLSearchParams({ stages: guids.join(' '), region });
+            const url = `/index.html?${params.toString()}`;
+            window.open(url, '_blank', 'noopener');
+
+            container.innerHTML = `
+                <div class="rounded p-2 result-box text-success-emphasis bg-success-subtle border border-success-subtle">已为 UID <strong>${uid}</strong>（${escHtml(regionName)}）生成 seq ${seqStart}~${seqEnd} 共 ${guids.length} 个 guid，并在新标签页打开查询。</div>
+                <textarea class="form-control font-monospace mt-2" rows="4" readonly>${escHtml(guids.join('\n'))}</textarea>`;
         };
 
         // 统一入口：捕获 cancelled 不报错，TOTP 错误重新弹框
