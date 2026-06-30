@@ -112,6 +112,7 @@
                         <label class="form-label">UID 或 GUID</label>
                         <input id="enumInput" type="text" inputmode="numeric" class="form-control font-monospace"
                             placeholder="自动识别 UID / guid" />
+                        <div id="enumPreview" class="form-text"></div>
                     </div>
                     <div class="col-6 col-md-3">
                         <label class="form-label">seq 起始</label>
@@ -479,6 +480,59 @@
         // 据此判断输入是 UID 还是 guid。这里的 UID 是作者游戏内 UID，非账号 UID（aid）。
         const MAX_ENUM_COUNT = 200;
 
+        /** 解析枚举输入，返回 { uid, region, regionName, guidConversion } 或 { error } */
+        function parseEnumInput(raw) {
+            if (!/^\d+$/.test(raw)) {
+                return { error: '请输入纯数字的 UID 或奇域 ID' };
+            }
+            let uid;
+            let guidConversion = null;
+            try {
+                const n = BigInt(raw);
+                // n >> 32 === 0 → 是 UID；否则视为 guid 并转换
+                if ((n >> 32n) === 0n) {
+                    uid = Number(n);
+                } else {
+                    const converted = guidToUid(n);
+                    uid = converted.uid;
+                    guidConversion = { guid: raw, uid: converted.uid, seq: converted.seq };
+                }
+            } catch (err) {
+                return { error: '无法解析输入的数字' };
+            }
+            const region = uidToRegion(uid);
+            if (!region) {
+                return { error: `无法根据 UID ${uid} 判断所属服务器（可能为内部服务器或无效 UID）` };
+            }
+            const regionName = (regionMap[region] && regionMap[region].name) || region;
+            return { uid, region, regionName, guidConversion };
+        }
+
+        /** 输入框变化时实时预览解析结果，便于参照 seq 调整范围 */
+        function updateEnumPreview() {
+            const preview = document.getElementById('enumPreview');
+            const raw = document.getElementById('enumInput').value.trim();
+            if (!raw) {
+                preview.className = 'form-text';
+                preview.textContent = '';
+                return;
+            }
+            const parsed = parseEnumInput(raw);
+            if (parsed.error) {
+                preview.className = 'form-text text-danger';
+                preview.textContent = parsed.error;
+                return;
+            }
+            preview.className = 'form-text';
+            if (parsed.guidConversion) {
+                preview.innerHTML = `识别为 guid → UID <strong>${parsed.uid}</strong> · seq <strong>${parsed.guidConversion.seq}</strong> · ${escHtml(parsed.regionName)}`;
+            } else {
+                preview.innerHTML = `识别为 UID <strong>${parsed.uid}</strong> · ${escHtml(parsed.regionName)}`;
+            }
+        }
+
+        document.getElementById('enumInput').addEventListener('input', updateEnumPreview);
+
         window.enumerateAuthorStages = () => {
             const container = document.getElementById('enumResult');
             const raw = document.getElementById('enumInput').value.trim();
@@ -489,7 +543,8 @@
                 container.innerHTML = `<div class="rounded p-2 result-box text-danger-emphasis bg-danger-subtle border border-danger-subtle">${escHtml(msg)}</div>`;
             };
 
-            if (!/^\d+$/.test(raw)) { fail('请输入纯数字的 UID 或奇域 ID'); return; }
+            const parsed = parseEnumInput(raw);
+            if (parsed.error) { fail(parsed.error); return; }
             if (!Number.isInteger(seqStart) || !Number.isInteger(seqEnd) || seqStart < 1 || seqEnd < 1) {
                 fail('seq 范围必须为正整数'); return;
             }
@@ -498,21 +553,7 @@
                 fail(`seq 范围过大，单次最多生成 ${MAX_ENUM_COUNT} 个`); return;
             }
 
-            let uid;
-            try {
-                const n = BigInt(raw);
-                // n >> 32 === 0 → 是 UID；否则视为 guid 并转换
-                uid = (n >> 32n) === 0n ? Number(n) : guidToUid(n).uid;
-            } catch (err) {
-                fail('无法解析输入的数字'); return;
-            }
-
-            // 根据 UID 前缀自动判断服务器
-            const region = uidToRegion(uid);
-            if (!region) {
-                fail(`无法根据 UID ${uid} 判断所属服务器（可能为内部服务器或无效 UID）`); return;
-            }
-            const regionName = (regionMap[region] && regionMap[region].name) || region;
+            const { uid, region, regionName, guidConversion } = parsed;
 
             const guids = [];
             for (let seq = seqStart; seq <= seqEnd; seq++) {
@@ -523,7 +564,12 @@
             const url = `/index.html?${params.toString()}`;
             window.open(url, '_blank', 'noopener');
 
+            const conversionHtml = guidConversion
+                ? `<div class="rounded p-2 result-box text-info-emphasis bg-info-subtle border border-info-subtle mb-2">输入识别为 guid <strong>${escHtml(guidConversion.guid)}</strong> → UID <strong>${guidConversion.uid}</strong>，seq <strong>${guidConversion.seq}</strong></div>`
+                : '';
+
             container.innerHTML = `
+                ${conversionHtml}
                 <div class="rounded p-2 result-box text-success-emphasis bg-success-subtle border border-success-subtle">已为 UID <strong>${uid}</strong>（${escHtml(regionName)}）生成 seq ${seqStart}~${seqEnd} 共 ${guids.length} 个 guid，并在新标签页打开查询。</div>
                 <textarea class="form-control font-monospace mt-2" rows="4" readonly>${escHtml(guids.join('\n'))}</textarea>`;
         };

@@ -235,8 +235,13 @@ function uidToGuid(uid, seq) {
 // 0 开头为内部服务器，无对应公开区域，返回 null
 function uidToRegion(uid) {
     const s = String(uid).trim();
-    if (!/^\d+$/.test(s)) return null;
-    if (s.length === 10 && s.startsWith('18')) return 'os_asia';
+    if (!/^\d{9,10}$/.test(s)) return null;
+    if (s.length === 10) {
+        if(s.startsWith('18')) {
+            return 'os_asia';
+        }
+        return null;
+    }
     switch (s[0]) {
         case '1':
         case '2':
