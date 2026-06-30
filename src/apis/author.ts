@@ -28,8 +28,11 @@ export async function getAuthorInfo(id: string) {
 		throw new Error(`Author not found: ${id}`);
 	}
 
-	// 查询作者的奇域列表
-	const stages = await db.prepare('SELECT region, stage_id FROM stage_cache WHERE uid = ? ORDER BY created_at DESC').bind(uid).all();
+	// 查询作者的奇域列表，按 guid（stage_id）数值升序以体现 seq 顺序
+	const stages = await db
+		.prepare('SELECT region, stage_id FROM stage_cache WHERE uid = ? ORDER BY CAST(stage_id AS INTEGER) ASC')
+		.bind(uid)
+		.all();
 
 	return {
 		uid: author.uid,

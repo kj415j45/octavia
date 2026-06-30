@@ -115,6 +115,9 @@
                     uid = authorData.uid;
                 }
 
+                // Load region map before rendering so server names are available
+                await getRegionMap();
+
                 // Display author info
                 displayAuthorInfo(authorData);
 
@@ -154,6 +157,26 @@
                 `;
             }
 
+            // Compute the author's in-game UID on each server that has stages
+            const serverUids = computeServerUids(author.stages);
+            let serverUidsHtml = '';
+            if (serverUids.length > 0) {
+                const items = serverUids.map(({ region, uid }) => {
+                    const regionName = (regionMap[region] && regionMap[region].name) || region;
+                    return `
+                        <div>
+                            <div class="text-muted">${regionName}</div>
+                            <div class="font-monospace">${uid}</div>
+                        </div>
+                    `;
+                }).join('');
+                serverUidsHtml = `
+                    <div class="d-flex flex-wrap gap-3 mt-3 small text-center text-md-start justify-content-center justify-content-md-start">
+                        ${items}
+                    </div>
+                `;
+            }
+
             authorInfoDiv.innerHTML = `
                 <div class="d-flex flex-column flex-md-row align-items-center align-items-md-start gap-4 text-center text-md-start">
                     <div class="author-avatar-container flex-shrink-0">
@@ -166,15 +189,33 @@
                     <div class="flex-grow-1 d-flex flex-column" style="min-height: 180px;">
                         <h2 class="mb-2">${author.name || '未知作者'}</h2>
                         ${author.ingameName ? `<p class="text-muted mb-3">${author.ingameName}</p>` : ''}
-                        
+
                         <span>已知奇域数量：<strong>${author.stages.length}</strong></span>
 
                         <div class="d-flex gap-3 mt-auto justify-content-center justify-content-md-start">
                             ${platformLinks}
                         </div>
+
+                        ${serverUidsHtml}
                     </div>
                 </div>
             `;
+        }
+
+        // Compute the author's in-game UID for each server that has stages.
+        // 注意：这里的 UID 是作者的游戏内 UID（由 guid 转换得到），与账号 UID（aid）不同。
+        function computeServerUids(stages) {
+            const seen = new Map();
+            for (const stage of stages) {
+                if (seen.has(stage.region)) continue;
+                try {
+                    const { uid } = guidToUid(stage.stageId);
+                    seen.set(stage.region, uid);
+                } catch (err) {
+                    console.error(`Failed to convert stage_id ${stage.stageId} to uid:`, err);
+                }
+            }
+            return Array.from(seen.entries()).map(([region, uid]) => ({ region, uid }));
         }
 
         async function loadAuthorStages(stages) {
@@ -182,7 +223,7 @@
             stagesDiv.innerHTML = '';
 
             if (stages.length === 0) {
-                stagesDiv.innerHTML = '<div class="col-12 text-center text-muted">该作者暂无已知奇域作品</div>';
+                stagesDiv.innerHTML = '<div class="col-12 text-center text-muted">该作者暂无已知奇域</div>';
                 return;
             }
 

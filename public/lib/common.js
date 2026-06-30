@@ -212,6 +212,24 @@ async function searchStageDatabase(keyword = '', page = 1) {
     return data;
 }
 
+// GUID <-> UID conversion utilities
+// stage_id（guid）的低 32 位减去魔数得到作者游戏内 uid（非账号 uid/aid），高 32 位为 seq
+const GUID_MAGIC_NUMBER = 0x9C2BFB7Bn;
+
+function guidToUid(guid) {
+    const value = BigInt(guid);
+    const low32 = value & 0xFFFFFFFFn;
+    const uid = low32 - GUID_MAGIC_NUMBER;
+    const seq = value >> 32n;
+    return { uid: Number(uid), seq: Number(seq) };
+}
+
+function uidToGuid(uid, seq) {
+    const low32 = (BigInt(uid) + GUID_MAGIC_NUMBER) & 0xFFFFFFFFn;
+    const guid = (BigInt(seq) << 32n) | low32;
+    return guid.toString();
+}
+
 function getStageKey(stage) {
     return `${stage.level.region}:${stage.level.id}`;
 }
