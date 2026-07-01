@@ -273,6 +273,22 @@ function pushStage(stage) {
     }
 }
 
+function attachTooltip(element, text) {
+    if (!element || !text) {
+        return;
+    }
+
+    element.setAttribute('title', text);
+    element.setAttribute('data-bs-toggle', 'tooltip');
+    element.setAttribute('data-bs-title', text);
+
+    if (window.bootstrap?.Tooltip) {
+        window.bootstrap.Tooltip.getOrCreateInstance(element, {
+            trigger: 'hover focus',
+        });
+    }
+}
+
 // Changelog modal
 function showChangelogModal(versionInfo) {
     const modal = document.createElement('div');
@@ -740,6 +756,12 @@ function makeStageCard(stage, options = {}) {
     authorLink.appendChild(avatarContainer);
     authorLink.appendChild(authorName);
 
+    const calculatedUid = guidToUid(level.id).uid;
+    const authorGameUid = author.game?.uid != null ? String(author.game.uid) : String(calculatedUid);
+    if (authorGameUid) {
+        attachTooltip(authorLink, `UID：${authorGameUid}`);
+    }
+
     authorInfo.appendChild(authorLink);
 
     // Level ID and copy button
@@ -753,6 +775,9 @@ function makeStageCard(stage, options = {}) {
     levelId.target = '_blank';
     levelId.rel = 'noopener';
     levelId.textContent = `${level.id}`;
+
+    const { seq } = guidToUid(level.id);
+    attachTooltip(levelId, `作者的第 ${seq} 个奇域`);
 
     const copyButton = document.createElement('button');
     copyButton.className = 'btn btn-sm btn-outline-secondary text-nowrap';
