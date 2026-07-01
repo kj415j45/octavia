@@ -88,8 +88,10 @@ class Octavia {
 		};
 		const mysInfo = developerInfo.developer.mys_user_info;
 		const hylInfo = developerInfo.developer.hyl_user_info;
+		const gameUid = this.guidToUid(stageId)?.uid ?? null;
 		const author = {
 			game: {
+				uid: gameUid,
 				avatar: this.getValidAvatar(developerInfo.developer.game_avatar),
 				name: developerInfo.developer.game_nickname,
 			},
@@ -109,6 +111,20 @@ class Octavia {
 			author,
 			level,
 		};
+	}
+
+	protected guidToUid(guid: string) {
+		const GUID_MAGIC_NUMBER = 0x9C2BFB7Bn;
+
+		try {
+			const value = BigInt(guid);
+			const low32 = value & 0xFFFFFFFFn;
+			const uid = low32 - GUID_MAGIC_NUMBER;
+			const seq = value >> 32n;
+			return { uid: Number(uid), seq: Number(seq) };
+		} catch {
+			return null;
+		}
 	}
 
 	protected getValidAvatar(avatar: string) {
