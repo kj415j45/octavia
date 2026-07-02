@@ -49,6 +49,45 @@
                 <button id="resetButton" class="btn btn-outline-secondary btn-sm" type="button">恢复默认</button>
             </div>
         </section>
+
+        <section class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">本地缓存</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">奇域信息会在浏览器中缓存 <strong>30 分钟</strong>，超出 <strong>7 天</strong>的缓存会自动清理。缓存过期时若后端无法访问，将显示缓存内容并以蓝色边框标注。</p>
+                <div class="row g-2" id="cacheStatsGrid">
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-2 text-center">
+                            <div class="fw-bold fs-5" id="cacheTotalCount">-</div>
+                            <div class="text-muted small">缓存条目</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-2 text-center">
+                            <div class="fw-bold fs-5 text-success" id="cacheFreshCount">-</div>
+                            <div class="text-muted small">有效</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-2 text-center">
+                            <div class="fw-bold fs-5 text-warning" id="cacheStaleCount">-</div>
+                            <div class="text-muted small">已过期</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border rounded p-2 text-center">
+                            <div class="fw-bold fs-5" id="cacheSizeKB">-</div>
+                            <div class="text-muted small">占用大小</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span id="cacheActionState" class="text-muted small"></span>
+                <button id="clearCacheButton" class="btn btn-outline-danger btn-sm" type="button">清除缓存</button>
+            </div>
+        </section>
     </main>
 
     <footer class="mt-auto">
@@ -84,6 +123,26 @@
         });
 
         renderState();
+
+        // Cache management
+        function renderCacheStats() {
+            const stats = window.OctaviaCache.getStats();
+            document.getElementById('cacheTotalCount').textContent = stats.count;
+            document.getElementById('cacheFreshCount').textContent = stats.freshCount;
+            document.getElementById('cacheStaleCount').textContent = stats.staleCount;
+            const kb = (stats.totalSize / 1024).toFixed(1);
+            document.getElementById('cacheSizeKB').textContent = `${kb} KB`;
+        }
+
+        document.getElementById('clearCacheButton').addEventListener('click', () => {
+            window.OctaviaCache.clear();
+            const stateEl = document.getElementById('cacheActionState');
+            stateEl.textContent = '缓存已清除';
+            renderCacheStats();
+            setTimeout(() => { stateEl.textContent = ''; }, 3000);
+        });
+
+        renderCacheStats();
     </script>
 </body>
 

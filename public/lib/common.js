@@ -142,6 +142,56 @@ window.OctaviaSettings = {
     setDataSaverModeEnabled,
 };
 
+// Stage cache
+const STAGE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const STAGE_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+const _stageCacheStore = createScopedStorage('octavia:stage-cache');
+
+function cleanupStageCache() {
+    const now = Date.now();
+    _stageCacheStore.keys().forEach(key => {
+        const entry = _stageCacheStore.get(key);
+        if (!entry || (now - entry.cachedAt) > STAGE_CACHE_MAX_AGE) {
+            _stageCacheStore.remove(key);
+        }
+    });
+}
+
+function getStageCacheStats() {
+    const keys = _stageCacheStore.keys();
+    const now = Date.now();
+    let totalSize = 0;
+    let freshCount = 0;
+    let staleCount = 0;
+    keys.forEach(key => {
+        const raw = _stageCacheStore.getRaw(key);
+        if (raw) totalSize += raw.length;
+        const entry = _stageCacheStore.get(key);
+        if (entry) {
+            if ((now - entry.cachedAt) < STAGE_CACHE_TTL) {
+                freshCount++;
+            } else {
+                staleCount++;
+            }
+        }
+    });
+    return { count: keys.length, freshCount, staleCount, totalSize };
+}
+
+function clearStageCache() {
+    _stageCacheStore.clear();
+}
+
+window.OctaviaCache = {
+    getStats: getStageCacheStats,
+    clear: clearStageCache,
+    cleanup: cleanupStageCache,
+};
+
+// Auto-cleanup expired cache entries on load
+cleanupStageCache();
+
 // Region map utilities
 async function getRegionMap() {
     const response = await fetch(`${baseUrl}/data/regions.json`);
@@ -185,13 +235,34 @@ async function populateRegionDropdown(currentRegion = 'cn_gf01') {
 
 // API utilities
 async function getStageInfo(region, id) {
-    const response = await fetch(`${baseUrl}/api/stage?region=${region}&id=${id}`);
-    if (!response.ok) {
-        const error = new Error(`Stage request failed: ${response.status}`);
-        error.httpStatus = response.status;
-        throw error;
+    const cacheKey = `${region}:${id}`;
+    const cached = _stageCacheStore.get(cacheKey);
+    const now = Date.now();
+
+    // Return fresh cache immediately without a backend call
+    if (cached && (now - cached.cachedAt) < STAGE_CACHE_TTL) {
+        return cached.data;
     }
-    return await response.json();
+
+    // Cache expired or missing — call backend
+    try {
+        const response = await fetch(`${baseUrl}/api/stage?region=${region}&id=${id}`);
+        if (!response.ok) {
+            const error = new Error(`Stage request failed: ${response.status}`);
+            error.httpStatus = response.status;
+            throw error;
+        }
+        const data = await response.json();
+        _stageCacheStore.set(cacheKey, { data, cachedAt: now });
+        cleanupStageCache();
+        return data;
+    } catch (err) {
+        // For network / timeout failures (no HTTP status), fall back to stale cache
+        if (cached && err.httpStatus === undefined) {
+            return Object.assign({}, cached.data, { _staleCache: true });
+        }
+        throw err;
+    }
 }
 
 async function getAuthorInfo(uid) {
@@ -415,6 +486,9 @@ function makeStageCard(stage, options = {}) {
             // Upstream confirmed deletion — red
             card.style.border = '4px solid #dc3545';
         }
+    } else if (stage._staleCache || options.fromStaleCache) {
+        // Data served from expired local cache because backend was unreachable — blue
+        card.style.border = '4px solid #0d6efd';
     }
 
     // Add preview image with click-to-fullscreen functionality
