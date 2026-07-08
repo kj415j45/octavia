@@ -58,6 +58,26 @@
             </div>
         </div>
 
+        <!-- ── 检视奇域缓存 ── -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">检视奇域缓存</h5></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">服务器</label>
+                    <select id="inspectRegion" class="form-select">
+                        <option value="">加载中…</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">GUID（奇域 ID）</label>
+                    <input id="inspectGuid" type="text" inputmode="numeric" class="form-control font-monospace"
+                        placeholder="输入奇域 GUID" />
+                </div>
+                <button class="btn btn-info" onclick="triggerAction('inspect_stage_cache')">检视缓存</button>
+                <div id="inspectResult" class="mt-3"></div>
+            </div>
+        </div>
+
         <!-- ── 手动触发排行榜更新 ── -->
         <div class="card mb-4">
             <div class="card-header"><h5 class="mb-0">排行榜更新</h5></div>
@@ -230,18 +250,20 @@
         // ── 从 regions.json 填充服务器下拉 ─────────────────────────────────
         getRegionMap()
             .then(() => {
-                const sel = document.getElementById('flushRegion');
-                sel.innerHTML = '';
-                for (const [id, info] of Object.entries(regionMap)) {
-                    const opt = document.createElement('option');
-                    opt.value = id;
-                    opt.textContent = `${info.name} (${id})`;
-                    sel.appendChild(opt);
+                const selectors = [document.getElementById('flushRegion'), document.getElementById('inspectRegion')];
+                for (const sel of selectors) {
+                    sel.innerHTML = '';
+                    for (const [id, info] of Object.entries(regionMap)) {
+                        const opt = document.createElement('option');
+                        opt.value = id;
+                        opt.textContent = `${info.name} (${id})`;
+                        sel.appendChild(opt);
+                    }
                 }
             })
             .catch(() => {
-                const sel = document.getElementById('flushRegion');
-                sel.innerHTML = '<option value="">加载失败，请刷新</option>';
+                document.getElementById('flushRegion').innerHTML = '<option value="">加载失败，请刷新</option>';
+                document.getElementById('inspectRegion').innerHTML = '<option value="">加载失败，请刷新</option>';
             });
 
         const totpModalEl = document.getElementById('totpModal');
@@ -388,6 +410,14 @@
                 if (!stage_ids.length) { alert('请输入至少一个关卡 ID'); return; }
                 const result = await callApi({ action: 'flush_cache', region, stage_ids });
                 renderResult('flushResult', result);
+            },
+
+            inspect_stage_cache: async (btn) => {
+                const region = document.getElementById('inspectRegion').value;
+                const guid = document.getElementById('inspectGuid').value.trim();
+                if (!guid) { alert('请输入 GUID'); return; }
+                const result = await callApi({ action: 'inspect_stage_cache', region, guid });
+                renderResult('inspectResult', result);
             },
 
             update_leaderboard: async (btn) => {
