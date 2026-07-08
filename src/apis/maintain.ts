@@ -178,6 +178,63 @@ export async function handleMaintain(request: Request): Promise<Response> {
 			return jsonOk({ results: rows.results });
 		}
 
+		case 'inspect_stage_cache': {
+			const region = body.region as string;
+			const guid = body.guid as string | number;
+			if (!region || typeof region !== 'string') {
+				return jsonError('需要 region', 400);
+			}
+			if (guid === undefined || guid === null || String(guid).trim() === '') {
+				return jsonError('需要 guid', 400);
+			}
+			const validRegions = Object.values(Regions) as string[];
+			if (!validRegions.includes(region)) {
+				return jsonError(`无效的 region: ${region}`, 400);
+			}
+
+			const stageId = String(guid).trim();
+			const db = env.DB;
+			const row = await db
+				.prepare(
+					`SELECT region, stage_id, uid, name, intro, description, good_rate, category, deleted, data, created_at, expires_at, rotate_at
+					 FROM stage_cache
+					 WHERE region = ? AND stage_id = ?
+					 LIMIT 1`,
+				)
+				.bind(region, stageId)
+				.first<{
+					region: string;
+					stage_id: string;
+					uid: string | null;
+					name: string | null;
+					intro: string | null;
+					description: string | null;
+					good_rate: string | null;
+					category: string | null;
+					deleted: number;
+					data: string;
+					created_at: number;
+					expires_at: number;
+					rotate_at: number | null;
+				}>();
+
+			if (!row) {
+				return jsonError('未找到该奇域缓存记录', 404);
+			}
+
+			let parsedData: unknown = null;
+			try {
+				parsedData = JSON.parse(row.data);
+			} catch {
+				parsedData = null;
+			}
+
+			return jsonOk({
+				cache: row,
+				parsed_data: parsedData,
+			});
+		}
+
 		case 'stats': {
 			const db = env.DB;
 			const now = Math.floor(Date.now() / 1000);
