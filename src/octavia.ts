@@ -119,7 +119,7 @@ class Octavia {
 		try {
 			const value = BigInt(guid);
 			const low32 = value & 0xFFFFFFFFn;
-			const uid = low32 - GUID_MAGIC_NUMBER;
+			const uid = BigInt.asUintN(32, low32 - GUID_MAGIC_NUMBER);
 			const seq = value >> 32n;
 			return { uid: Number(uid), seq: Number(seq) };
 		} catch {
