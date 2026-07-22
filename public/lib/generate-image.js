@@ -40,6 +40,13 @@ async function generateStageImage(stages, options = {}) {
 
     const showRegion = options.showRegion === true;
 
+    // Determine how region info should be displayed:
+    // - single region across all stages  -> show once, centered at the top
+    // - multiple regions                 -> show per row in the leftmost column
+    const uniqueRegions = [...new Set(stages.map(stage => stage.level.region))];
+    const showRegionOnTop = showRegion && uniqueRegions.length === 1;
+    const showRegionPerRow = showRegion && uniqueRegions.length > 1;
+
     try {
         // Create container for the table
         const container = document.createElement('div');
@@ -58,13 +65,27 @@ async function generateStageImage(stages, options = {}) {
 
         const countInfo = document.createElement('div');
         countInfo.textContent = `共 ${stages.length} 个`;
+        countInfo.style.flex = '1';
         headerInfo.appendChild(countInfo);
+
+        // Single-region title, shown centered in the header row
+        if (showRegionOnTop) {
+            const regionTitle = document.createElement('div');
+            regionTitle.textContent = regionMap[uniqueRegions[0]]?.name || uniqueRegions[0] || '未知';
+            regionTitle.style.flex = '1';
+            regionTitle.style.textAlign = 'center';
+            regionTitle.style.fontWeight = 'bold';
+            regionTitle.style.color = '#333';
+            headerInfo.appendChild(regionTitle);
+        }
 
         const timeInfo = document.createElement('div');
         const now = new Date();
         const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
         const isoTime = beijingTime.toISOString().slice(0, 16).replace('T', ' ');
         timeInfo.textContent = `${isoTime} (UTC+8)`;
+        timeInfo.style.flex = '1';
+        timeInfo.style.textAlign = 'right';
         headerInfo.appendChild(timeInfo);
 
         container.appendChild(headerInfo);
@@ -87,6 +108,7 @@ async function generateStageImage(stages, options = {}) {
             th.style.borderBottom = '2px solid #dee2e6';
             th.style.backgroundColor = '#f8f9fa';
             th.style.fontWeight = 'bold';
+            if(headerText === '热度') th.style.textAlign = 'right';
             headerRow.appendChild(th);
         });
         thead.appendChild(headerRow);
@@ -112,7 +134,7 @@ async function generateStageImage(stages, options = {}) {
             idCell.style.padding = '12px 8px';
             idCell.style.borderBottom = '1px solid #dee2e6';
 
-            if (showRegion) {
+            if (showRegionPerRow) {
                 const regionText = regionMap[stage.level.region]?.name || stage.level.region || '未知';
 
                 const regionLine = document.createElement('div');

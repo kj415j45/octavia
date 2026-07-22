@@ -333,6 +333,14 @@ function uidToRegion(uid) {
     }
 }
 
+function guidToRegion(guid) {
+    const uidInfo = guidToUid(guid);
+    if (uidInfo) {
+        return uidToRegion(uidInfo.uid);
+    }
+    return null;
+}
+
 function getStageKey(stage) {
     return `${stage.level.region}:${stage.level.id}`;
 }
@@ -467,8 +475,7 @@ function makeStageCard(stage, options = {}) {
     const status = stage.status;
     const removed = status.removed;
     const region = level.region;
-    
-    const showRegion = options.showRegion || false;
+
     const linkToPlatform = options.linkToPlatform || false;
     const stageEndpointBase = regionMap[region]?.stage || 'https://act.miyoushe.com/ys/ugc_community/mx/#/pages/level-detail/index';
     const authorEndpointBase = regionMap[region]?.author || 'https://www.miyoushe.com/ys/accountCenter';
@@ -878,14 +885,11 @@ function makeStageCard(stage, options = {}) {
 
     card.appendChild(cardBody);
 
-    // Add region badge at the bottom if needed
-    if (showRegion) {
-        const regionBadge = document.createElement('div');
-        regionBadge.className = 'card-footer bg-info text-white text-center py-1';
-        regionBadge.style.fontSize = '0.875rem';
-        regionBadge.textContent = regionMap[level.region]?.name || level.region;
-        card.appendChild(regionBadge);
-    }
+    const regionBadge = document.createElement('div');
+    regionBadge.className = 'card-footer bg-info text-white text-center py-1';
+    regionBadge.style.fontSize = '0.875rem';
+    regionBadge.textContent = regionMap[level.region]?.name || level.region;
+    card.appendChild(regionBadge);
 
     return card;
 }
