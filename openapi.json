@@ -14,12 +14,12 @@
     "/api/stage": {
       "get": {
         "summary": "Get stage details",
-        "description": "Returns stage details from cache or upstream.",
+        "description": "Returns stage details from cache or upstream. If region is not specified, the server will try to infer it from the stage ID.",
         "parameters": [
           {
             "name": "region",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "Region code.",
             "schema": {
               "type": "string",

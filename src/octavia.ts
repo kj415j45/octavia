@@ -38,6 +38,10 @@ class Octavia {
 	}
 
 	async getStageInfo(region: Regions, stageId: string) {
+		if(!Object.values(Regions).includes(region)) {
+			region = this.guidToRegion(stageId) ?? region;
+		}
+
 		const endpoint = this.getEndpoint(region);
 		const payload = {
 			region,
@@ -57,8 +61,8 @@ class Octavia {
 		const replyCard = resp_map.reply_card.data.reply_card_response;
 
 		const level = {
-			region: region,
-			id: stageId,
+			region: levelDetail.region,
+			id: levelDetail.level_id,
 			meta: {
 				name: levelDetail.level_name,
 				description: levelDetail.desc,
@@ -113,11 +117,11 @@ class Octavia {
 		};
 	}
 
-	protected guidToUid(guid: string) {
+	public guidToUid(guid: string | BigInt) {
 		const GUID_MAGIC_NUMBER = 0x9C2BFB7Bn;
 
 		try {
-			const value = BigInt(guid);
+			const value = BigInt(guid.toString());
 			const low32 = value & 0xFFFFFFFFn;
 			const uid = BigInt.asUintN(32, low32 - GUID_MAGIC_NUMBER);
 			const seq = value >> 32n;
@@ -125,6 +129,45 @@ class Octavia {
 		} catch {
 			return null;
 		}
+	}
+
+	public uidToRegion(uid: string | number) {
+		const value = uid.toString();
+		if(value.length === 10) {
+			if(value.startsWith('18')){
+				return Regions.GLB_AS;
+			}
+		}
+
+		if(value.length === 9) {
+			const firstDigit = value[0];
+			switch (firstDigit) {
+				case '1':
+				case '2':
+				case '3':
+				// case '4': // Not available for now
+					return Regions.CN_GF;
+				case '5':
+					return Regions.CN_BILI;
+				case '6':
+					return Regions.GLB_NA
+				case '7':
+					return Regions.GLB_EU;
+				case '8':
+					return Regions.GLB_AS;
+				case '9':
+					return Regions.CN_CHT;
+			}
+		}
+		return null;
+	}
+
+	public guidToRegion(guid: string | BigInt) {
+		const uidInfo = this.guidToUid(guid);
+		if(uidInfo) {
+			return this.uidToRegion(uidInfo.uid);
+		}
+		return null;
 	}
 
 	protected getValidAvatar(avatar: string) {

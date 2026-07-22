@@ -29,6 +29,9 @@ function normalizeStageId(stageId: string): string {
 }
 
 export async function getStageInfo(region: string, stageId: string) {
+	if(region.trim() === '') {
+		region = octavia.guidToRegion(stageId) ?? region;
+	}
 	const validRegions = Object.values(Regions);
 	if (!validRegions.includes(region as Regions)) {
 		throw new Error(`Invalid region: ${region}. Valid regions are: ${validRegions.join(', ')}`);
