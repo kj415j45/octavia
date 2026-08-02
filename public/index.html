@@ -58,6 +58,10 @@
                 </div>
                 <div class="card-body" id="filterBody">
                     <div class="row g-3">
+                        <div class="col-12 d-none" id="filterRegionSection">
+                            <label class="form-label fw-bold mb-1">区服</label>
+                            <div id="filterRegions" class="d-flex flex-wrap gap-1"></div>
+                        </div>
                         <div class="col-12">
                             <label class="form-label fw-bold mb-1">标签</label>
                             <div id="filterTags" class="d-flex flex-wrap gap-1"></div>
@@ -157,6 +161,7 @@
         let selectedTags = new Set();
         let selectedCategory = null;
         let selectedPlayerModes = new Set(); // 'solo' | 'optional' | 'multi'
+        let selectedRegions = new Set();
 
         function isPlayerCountFilterEnabled() {
             return document.getElementById('filterPlayersEnabled').checked;
@@ -187,6 +192,9 @@
             const sliderVal = parseInt(document.getElementById('filterPlayersSlider').value) || 2;
             return $Stages.filter(stage => {
                 const meta = stage.level.meta;
+                if (selectedRegions.size > 0) {
+                    if (!selectedRegions.has(stage.level.region)) return false;
+                }
                 // Tag filter (type + tags merged): OR logic, empty = all
                 if (selectedTags.size > 0) {
                     const stageTags = [meta.type, ...(meta.tags || [])];
@@ -258,6 +266,48 @@
                         btn.classList.add('btn-outline-secondary');
                     } else {
                         selectedTags.add(tag);
+                        btn.classList.remove('btn-outline-secondary');
+                        btn.classList.add('btn-info');
+                    }
+                    applyFilters();
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        function buildRegionFilter() {
+            const container = document.getElementById('filterRegions');
+            const section = document.getElementById('filterRegionSection');
+            if (!container || !section) return;
+
+            const regions = Array.from(new Set($Stages.map(stage => stage.level.region).filter(Boolean))).sort();
+            const preservedSelection = new Set([...selectedRegions].filter(regionId => regions.includes(regionId)));
+            selectedRegions = preservedSelection;
+
+            container.innerHTML = '';
+            section.classList.toggle('d-none', regions.length <= 1);
+
+            if (regions.length <= 1) {
+                return;
+            }
+
+            regions.forEach(regionId => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-sm btn-outline-secondary filter-region-btn';
+                btn.textContent = regionMap[regionId]?.name || regionId;
+                btn.dataset.value = regionId;
+                if (selectedRegions.has(regionId)) {
+                    btn.classList.remove('btn-outline-secondary');
+                    btn.classList.add('btn-info');
+                }
+                btn.addEventListener('click', () => {
+                    if (selectedRegions.has(regionId)) {
+                        selectedRegions.delete(regionId);
+                        btn.classList.remove('btn-info');
+                        btn.classList.add('btn-outline-secondary');
+                    } else {
+                        selectedRegions.add(regionId);
                         btn.classList.remove('btn-outline-secondary');
                         btn.classList.add('btn-info');
                     }
@@ -476,6 +526,7 @@
                     return;
                 }
                 buildFilterTags();
+                buildRegionFilter();
                 initFilterControls();
                 document.getElementById('filters').classList.remove('d-none');
 
