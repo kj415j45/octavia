@@ -163,10 +163,13 @@
             if (serverUids.length > 0) {
                 const items = serverUids.map(({ region, uid }) => {
                     const regionName = (regionMap[region] && regionMap[region].name) || region;
+                    const regionLink = `${regionMap[region].component}/${uid}?region=${region}`;
                     return `
                         <div>
                             <div class="text-muted">${regionName}</div>
-                            <div class="font-monospace">${uid}</div>
+                            <div class="font-monospace">
+                                <a href="${regionLink}" target="_blank" rel="noopener">${uid}</a>
+                            </div>
                         </div>
                     `;
                 }).join('');
