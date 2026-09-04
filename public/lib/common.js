@@ -4,6 +4,7 @@ const baseUrl = "";
 const AUTO_DETECT_REGION = 'auto';
 let regionMap = {};
 let $Stages = [];
+let activities = [];
 
 // Storage utilities
 function createMemoryStorage() {
@@ -231,6 +232,11 @@ async function populateRegionDropdown(currentRegion = 'cn_gf01') {
         select.value = currentRegion;
         return currentRegion;
     }
+}
+
+async function loadActivities() {
+    const response = await fetch(`${baseUrl}/data/activities.json`);
+    activities = await response.json();
 }
 
 // API utilities
@@ -464,6 +470,16 @@ function showChangelogModal(versionInfo) {
     });
 
     document.body.appendChild(modal);
+}
+
+function extractSpecialTag(stage, activities) {
+    const specialTags = [];
+    activities.forEach(activity => {
+        if (stage.description.includes(activity.match.description)) {
+            specialTags.push(activity.title);
+        }
+    });
+    return specialTags;
 }
 
 // Card creation
@@ -733,6 +749,7 @@ function makeStageCard(stage, options = {}) {
 
     const leftTags = document.createElement('div');
     leftTags.className = 'col-6';
+
     const playerNumTag = document.createElement('span');
     playerNumTag.className = 'badge me-1';
     if (meta.players.str.startsWith('1')) {
@@ -745,10 +762,12 @@ function makeStageCard(stage, options = {}) {
         playerNumTag.classList.add('bg-warning');
     }
     playerNumTag.textContent = `[${meta.players.min}, ${meta.players.max}] ${meta.players.str}人`;
+
     const typeBadge = document.createElement('span');
     typeBadge.className = 'badge bg-secondary me-1';
     typeBadge.textContent = meta.type;
     leftTags.appendChild(typeBadge);
+
     const categoryBadge = document.createElement('span');
     categoryBadge.className = 'badge me-1';
     if (meta.category == '轻量趣味') {
@@ -763,6 +782,17 @@ function makeStageCard(stage, options = {}) {
 
     leftTags.appendChild(document.createElement('br'));
     leftTags.appendChild(playerNumTag);
+
+    const specialTags = extractSpecialTag(meta, activities);
+    specialTags.forEach(tag => {
+        const specialTag = document.createElement('a');
+        specialTag.className = 'badge bg-danger me-1';
+        specialTag.href = activities.find(activity => activity.title === tag)?.link ?? '#';
+        specialTag.target = '_blank';
+        specialTag.style.textDecoration = 'none';
+        specialTag.textContent = tag;
+        leftTags.appendChild(specialTag);
+    });
 
     const rightTags = document.createElement('div');
     rightTags.className = 'col-6 text-end';

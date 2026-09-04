@@ -233,6 +233,21 @@ async function generateStageImage(stages, options = {}) {
                     badgesDiv.appendChild(badge);
                 });
             }
+
+            const specialTags = extractSpecialTag(stage.level.meta, activities);
+            specialTags.forEach(tag => {
+                const specialTag = document.createElement('span');
+                specialTag.textContent = tag;
+                specialTag.style.display = 'inline-block';
+                specialTag.style.padding = '2px 8px';
+                specialTag.style.marginRight = '4px';
+                specialTag.style.fontSize = '12px';
+                specialTag.style.backgroundColor = '#dc3545';
+                specialTag.style.color = '#ffffff';
+                specialTag.style.borderRadius = '4px';
+                badgesDiv.appendChild(specialTag);
+            });
+
             nameCell.appendChild(badgesDiv);
             row.appendChild(nameCell);
 

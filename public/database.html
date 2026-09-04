@@ -339,6 +339,7 @@
 
         async function initPage() {
             await getRegionMap();
+            await loadActivities();
             const params = new URLSearchParams(window.location.search);
             const initialQuery = (params.get('q') || '').trim();
             const initialPage = Number.parseInt(params.get('page') || '1', 10);
