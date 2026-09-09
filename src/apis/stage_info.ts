@@ -28,6 +28,112 @@ function normalizeStageId(stageId: string): string {
 	return trimmedStageId;
 }
 
+function extractVersionNumber(version: string | number | null | undefined): string {
+	if (version == null) {
+		return '';
+	}
+	return String(version).replace(/^[^\d]*/, '').trim();
+}
+
+function compareVersionStrings(a: string, b: string): number {
+	const pa = extractVersionNumber(a).split('.').filter(Boolean).map((part) => Number(part) || 0);
+	const pb = extractVersionNumber(b).split('.').filter(Boolean).map((part) => Number(part) || 0);
+	const maxLength = Math.max(pa.length, pb.length);
+
+	for (let i = 0; i < maxLength; i++) {
+		const va = pa[i] ?? 0;
+		const vb = pb[i] ?? 0;
+		if (va !== vb) {
+			return va - vb;
+		}
+	}
+	return 0;
+}
+
+function mergeVersionInfo(versionInfo: any, cachedVersionInfo: any, now: number) {
+	if (!versionInfo || typeof versionInfo !== 'object') {
+		return versionInfo;
+	}
+
+	const latestVersion = versionInfo.latest ? String(versionInfo.latest) : null;
+	const changelog = Array.isArray(versionInfo.changelog) ? versionInfo.changelog : [];
+	const cachedChangelog = Array.isArray(cachedVersionInfo?.changelog) ? cachedVersionInfo.changelog : [];
+	const mergedMap = new Map<string, any>();
+
+	for (const entry of cachedChangelog) {
+		if (!entry || !entry.version) {
+			continue;
+		}
+		const version = String(entry.version);
+		const versionKey = extractVersionNumber(version);
+		mergedMap.set(versionKey, {
+			...mergedMap.get(versionKey),
+			...entry,
+			version,
+		});
+	}
+
+	for (const entry of changelog) {
+		if (!entry || !entry.version) {
+			continue;
+		}
+		const version = String(entry.version);
+		const versionKey = extractVersionNumber(version);
+		mergedMap.set(versionKey, {
+			...mergedMap.get(versionKey),
+			...entry,
+			version,
+		});
+	}
+
+	const latestIndex = latestVersion
+		? changelog.findIndex((entry: any) => compareVersionStrings(String(entry?.version), latestVersion) === 0)
+		: -1;
+	if (latestVersion && latestIndex < 0) {
+		return versionInfo;
+	}
+
+	const ordered = [...mergedMap.values()].sort((a, b) => compareVersionStrings(b.version, a.version));
+	if (ordered.length === 0) {
+		return versionInfo;
+	}
+
+	const newestVersion = latestVersion ? String(latestVersion) : ordered[ordered.length - 1]?.version;
+	if (!newestVersion) {
+		return versionInfo;
+	}
+
+	const newestEntry = mergedMap.get(extractVersionNumber(newestVersion));
+	if (newestEntry && newestEntry.start_at === undefined) {
+		newestEntry.start_at = now;
+		delete newestEntry.end_at;
+
+		const endedVersion = changelog[latestIndex + 1]?.version;
+		const endedEntry = endedVersion == null ? null : mergedMap.get(extractVersionNumber(String(endedVersion)));
+		if (endedEntry) {
+			endedEntry.end_at = endedEntry.end_at ?? now;
+		}
+	}
+
+	const normalizedChangelog = ordered.map((entry) => {
+		const normalized = { ...entry };
+		if (normalized.start_at === undefined) {
+			delete normalized.start_at;
+		}
+		if (normalized.end_at === undefined) {
+			delete normalized.end_at;
+		}
+		return normalized;
+	});
+
+	return {
+		...versionInfo,
+		latest: newestVersion,
+		updateInfo: versionInfo.updateInfo ?? changelog[latestIndex]?.content ?? '',
+		changelog: normalizedChangelog,
+	};
+}
+
 export async function getStageInfo(region: string, stageId: string) {
 	if(region.trim() === '') {
 		region = octavia.guidToRegion(stageId) ?? region;
@@ -130,6 +236,15 @@ export async function getStageInfo(region: string, stageId: string) {
 		const expiresAt = now + Global.CACHE_TTL;
 		const rotateAt = now + Global.ROTATE_INTERVAL;
 		const { name, intro, description, goodRate, category } = getCachedStageTextFields(result);
+		let cachedVersionInfo: any = null;
+		if (cached?.data) {
+			try {
+				cachedVersionInfo = JSON.parse(cached.data as string)?.level?.version ?? null;
+			} catch (error) {
+				logger.warn('Failed to parse cached version info:', error);
+			}
+		}
+		result.level.version = mergeVersionInfo(result.level.version, cachedVersionInfo, now);
 
 		await db
 			.prepare(

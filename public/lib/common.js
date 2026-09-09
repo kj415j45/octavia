@@ -374,6 +374,53 @@ function attachTooltip(element, text) {
     }
 }
 
+function formatVersionDate(ts) {
+    if (ts === undefined || ts === null || Number.isNaN(Number(ts))) {
+        return '?';
+    }
+
+    const date = new Date(Number(ts) * 1000);
+    if (Number.isNaN(date.getTime())) {
+        return '?';
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getVersionTimeMeta(entry) {
+    if (!entry || typeof entry !== 'object') {
+        return null;
+    }
+
+    const { start_at: startAt, end_at: endAt } = entry;
+    if (startAt == null && endAt == null) {
+        return null;
+    }
+
+    return `${formatVersionDate(startAt)} ~ ${formatVersionDate(endAt)}`;
+}
+
+function compareVersionDisplay(a, b) {
+    const parse = (version) => {
+        const normalized = String(version || '').replace(/^[^\d]*/, '').trim();
+        const parts = normalized.split('.').filter(Boolean).map((part) => Number(part) || 0);
+        return {
+            major: parts[0] ?? 0,
+            minor: parts[1] ?? 0,
+        };
+    };
+
+    const left = parse(a);
+    const right = parse(b);
+    if (left.major !== right.major) {
+        return left.major - right.major;
+    }
+    return left.minor - right.minor;
+}
+
 // Changelog modal
 function showChangelogModal(versionInfo) {
     const modal = document.createElement('div');
@@ -396,73 +443,139 @@ function showChangelogModal(versionInfo) {
     modalContent.style.width = '600px';
     modalContent.style.overflowY = 'auto';
 
-    // Header
-    const header = document.createElement('div');
-    header.className = 'd-flex justify-content-between align-items-center mb-3 border-bottom pb-2';
-    
-    const title = document.createElement('h4');
-    title.className = 'mb-0';
-    title.textContent = '更新日志';
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'btn-close';
-    closeBtn.setAttribute('aria-label', 'Close');
-    closeBtn.addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
+    let hideEmptyVersions = true;
+    const versionEntries = Array.isArray(versionInfo.changelog)
+        ? [...versionInfo.changelog].sort((a, b) => compareVersionDisplay(b.version, a.version))
+        : [];
 
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-    modalContent.appendChild(header);
+    const renderModal = () => {
+        modalContent.innerHTML = '';
 
-    const latestSection = document.createElement('div');
-    latestSection.className = 'mb-3 p-3 bg-light rounded';
-    
-    const latestTitle = document.createElement('h5');
-    latestTitle.className = 'text-primary mb-2';
-    latestTitle.innerHTML = `<span class="badge bg-primary me-2">最新</span>版本 ${versionInfo.latest}`;
-    
-    const latestContent = document.createElement('p');
-    latestContent.className = 'mb-0';
-    latestContent.innerHTML = versionInfo.updateInfo.replace(/\n/g, '<br>');
-    
-    latestSection.appendChild(latestTitle);
-    latestSection.appendChild(latestContent);
-    modalContent.appendChild(latestSection);
+        const header = document.createElement('div');
+        header.className = 'd-flex justify-content-between align-items-center mb-3 border-bottom pb-2';
+        
+        const titleWrap = document.createElement('div');
+        titleWrap.className = 'd-flex align-items-center gap-2 flex-wrap';
 
-    // Changelog list
-    if (versionInfo.changelog && versionInfo.changelog.length > 0) {
-        versionInfo.changelog.forEach((entry, index) => {
-            if(entry.version === versionInfo.latest) return; // Skip if same as latest version info
-            const entryDiv = document.createElement('div');
-            entryDiv.className = 'mb-3 pb-3';
-            if (index < versionInfo.changelog.length - 1) {
-                entryDiv.className += ' border-bottom';
-            }
-            
-            const entryTitle = document.createElement('h6');
-            entryTitle.className = 'text-secondary mb-2';
-            entryTitle.textContent = `版本 ${entry.version}`;
-            
-            const entryContent = document.createElement('p');
-            entryContent.className = 'mb-0';
-            entryContent.innerHTML = entry.content.replace(/\n/g, '<br>');
-            
-            entryDiv.appendChild(entryTitle);
-            entryDiv.appendChild(entryContent);
-            modalContent.appendChild(entryDiv);
+        const title = document.createElement('h4');
+        title.className = 'mb-0';
+        title.textContent = '更新日志';
+
+        const titleHint = document.createElement('small');
+        titleHint.className = 'text-muted';
+        titleHint.textContent = '时间为猜测，仅供参考';
+
+        titleWrap.appendChild(title);
+        titleWrap.appendChild(titleHint);
+
+        const headerControls = document.createElement('div');
+        headerControls.className = 'd-flex align-items-center gap-2';
+
+        const toggleLabel = document.createElement('label');
+        toggleLabel.className = 'd-flex align-items-center gap-2 small text-muted mb-0';
+        toggleLabel.style.cursor = 'pointer';
+
+        const hideToggle = document.createElement('input');
+        hideToggle.type = 'checkbox';
+        hideToggle.checked = hideEmptyVersions;
+        hideToggle.setAttribute('aria-label', '隐藏无更新日志版本');
+        hideToggle.addEventListener('change', () => {
+            hideEmptyVersions = hideToggle.checked;
+            renderModal();
         });
-    } else {
-        const noChangelog = document.createElement('p');
-        noChangelog.className = 'text-muted text-center my-4';
-        noChangelog.textContent = '暂无历史版本记录';
-        modalContent.appendChild(noChangelog);
-    }
 
+        const toggleText = document.createElement('span');
+        toggleText.textContent = '隐藏无更新日志版本';
+        toggleLabel.appendChild(hideToggle);
+        toggleLabel.appendChild(toggleText);
+        headerControls.appendChild(toggleLabel);
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn-close';
+        closeBtn.setAttribute('aria-label', 'Close');
+        closeBtn.addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+
+        header.appendChild(titleWrap);
+        header.appendChild(headerControls);
+        header.appendChild(closeBtn);
+        modalContent.appendChild(header);
+
+        const latestSection = document.createElement('div');
+        latestSection.className = 'mb-3 p-3 bg-light rounded';
+
+        const latestTitleRow = document.createElement('div');
+        latestTitleRow.className = 'd-flex justify-content-between align-items-center gap-3 mb-2';
+        
+        const latestTitle = document.createElement('h5');
+        latestTitle.className = 'text-primary mb-0';
+        latestTitle.innerHTML = `<span class="badge bg-primary me-2">最新</span>版本 ${versionInfo.latest}`;
+
+        const latestEntry = versionEntries.find((entry) => String(entry.version) === String(versionInfo.latest)) || { start_at: versionInfo.start_at, end_at: versionInfo.end_at };
+        const latestTimeMeta = getVersionTimeMeta(latestEntry);
+        const latestTime = document.createElement('small');
+        latestTime.className = 'text-muted ms-auto text-end';
+        latestTime.textContent = latestTimeMeta || '';
+
+        latestTitleRow.appendChild(latestTitle);
+        latestTitleRow.appendChild(latestTime);
+        
+        const latestContent = document.createElement('p');
+        latestContent.className = 'mb-0';
+        latestContent.innerHTML = (versionInfo.updateInfo || '').replace(/\n/g, '<br>');
+        
+        latestSection.appendChild(latestTitleRow);
+        latestSection.appendChild(latestContent);
+        modalContent.appendChild(latestSection);
+
+        const visibleEntries = hideEmptyVersions
+            ? versionEntries.filter((entry) => entry && String(entry.content || '').trim() !== '')
+            : versionEntries;
+
+        if (visibleEntries.length > 0) {
+            visibleEntries.forEach((entry, index) => {
+                if (String(entry.version) === String(versionInfo.latest)) return;
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'mb-3 pb-3';
+                if (index < visibleEntries.length - 1) {
+                    entryDiv.className += ' border-bottom';
+                }
+
+                const titleRow = document.createElement('div');
+                titleRow.className = 'd-flex justify-content-between align-items-center gap-3 mb-2';
+                
+                const entryTitle = document.createElement('h6');
+                entryTitle.className = 'text-secondary mb-0';
+                entryTitle.textContent = `版本 ${entry.version}`;
+
+                const timeMeta = getVersionTimeMeta(entry);
+                const timeText = document.createElement('small');
+                timeText.className = 'text-muted ms-auto text-end';
+                timeText.textContent = timeMeta || '';
+                titleRow.appendChild(entryTitle);
+                titleRow.appendChild(timeText);
+
+                const entryContent = document.createElement('p');
+                entryContent.className = 'mb-0';
+                entryContent.innerHTML = (entry.content || '').replace(/\n/g, '<br>');
+                
+                entryDiv.appendChild(titleRow);
+                entryDiv.appendChild(entryContent);
+                modalContent.appendChild(entryDiv);
+            });
+        } else {
+            const noChangelog = document.createElement('p');
+            noChangelog.className = 'text-muted text-center my-4';
+            noChangelog.textContent = '暂无历史版本记录';
+            modalContent.appendChild(noChangelog);
+        }
+    };
+
+    renderModal();
     modal.appendChild(modalContent);
 
-    // Close on background click
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             document.body.removeChild(modal);
