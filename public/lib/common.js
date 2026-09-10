@@ -514,16 +514,16 @@ function showChangelogModal(versionInfo) {
         latestTitle.innerHTML = `<span class="badge bg-primary me-2">最新</span>版本 ${versionInfo.latest}`;
 
         const latestEntry = versionEntries.find((entry) => String(entry.version) === String(versionInfo.latest)) || { start_at: versionInfo.start_at, end_at: versionInfo.end_at };
-        const latestTimeMeta = getVersionTimeMeta(latestEntry);
         const latestTime = document.createElement('small');
         latestTime.className = 'text-muted ms-auto text-end';
-        latestTime.textContent = latestTimeMeta || '';
+        latestTime.textContent = formatVersionDate(latestEntry.start_at);
 
         latestTitleRow.appendChild(latestTitle);
         latestTitleRow.appendChild(latestTime);
         
         const latestContent = document.createElement('p');
         latestContent.className = 'mb-0';
+        latestContent.style.cursor = 'text';
         latestContent.innerHTML = (versionInfo.updateInfo || '').replace(/\n/g, '<br>');
         
         latestSection.appendChild(latestTitleRow);
@@ -559,6 +559,7 @@ function showChangelogModal(versionInfo) {
 
                 const entryContent = document.createElement('p');
                 entryContent.className = 'mb-0';
+                entryContent.style.cursor = 'text';
                 entryContent.innerHTML = (entry.content || '').replace(/\n/g, '<br>');
                 
                 entryDiv.appendChild(titleRow);
