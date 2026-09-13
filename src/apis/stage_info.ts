@@ -50,7 +50,7 @@ function compareVersionStrings(a: string, b: string): number {
 	return 0;
 }
 
-function mergeVersionInfo(versionInfo: any, cachedVersionInfo: any, now: number) {
+export function mergeVersionInfo(versionInfo: any, cachedVersionInfo: any, now: number) {
 	if (!versionInfo || typeof versionInfo !== 'object') {
 		return versionInfo;
 	}

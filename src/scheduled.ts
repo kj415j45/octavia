@@ -1,6 +1,7 @@
 import octavia, { Regions, StageNotFoundError } from './octavia';
 import { Global } from './global';
 import { taggedLogger } from './logger';
+import { mergeVersionInfo } from './apis/stage_info';
 
 const MAX_BACKOFF = 7 * 24 * 3600; // 最大退避时间：7天
 export const ROTATE_BATCH_SIZE = 5;
@@ -20,7 +21,7 @@ export async function runScheduled(cron?: string) {
 	// 取出需要滚动更新的记录（rotate_at <= now，按 rotate_at ASC 取前5）
 	const rows = await db
 		.prepare(
-			'SELECT region, stage_id, expires_at, rotate_at FROM stage_cache WHERE rotate_at <= ? ORDER BY rotate_at ASC LIMIT ?',
+			'SELECT region, stage_id, expires_at, rotate_at, data FROM stage_cache WHERE rotate_at <= ? ORDER BY rotate_at ASC LIMIT ?',
 		)
 		.bind(now, ROTATE_BATCH_SIZE)
 		.all();
@@ -49,6 +50,16 @@ export async function runScheduled(cron?: string) {
 				const newNow = Math.floor(Date.now() / 1000);
 				const expiresAt = newNow + Global.CACHE_TTL;
 				const nextRotateAt = Math.floor(newNow + Global.ROTATE_INTERVAL);
+
+				let cachedVersionInfo: any = null;
+				if (row.data) {
+					try {
+						cachedVersionInfo = JSON.parse(row.data as string)?.level?.version ?? null;
+					} catch (error) {
+						logger.warn('Failed to parse cached version info:', error);
+					}
+				}
+				result.level.version = mergeVersionInfo(result.level.version, cachedVersionInfo, newNow);
 
 				// 提取uid
 				let uid: string | null = null;
