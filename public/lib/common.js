@@ -901,7 +901,7 @@ function makeStageCard(stage, options = {}) {
     specialTags.forEach(tag => {
         const specialTag = document.createElement('a');
         specialTag.className = 'badge bg-danger me-1';
-        specialTag.href = activities.find(activity => activity.title === tag)?.link ?? '#';
+        specialTag.href = `/award/${encodeURIComponent(tag)}`;
         specialTag.target = '_blank';
         specialTag.style.textDecoration = 'none';
         specialTag.textContent = tag;

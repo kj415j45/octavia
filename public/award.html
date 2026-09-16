@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>获奖名单 - Octavia</title>
+    <meta name="name" itemprop="name" content="获奖名单 - Octavia" />
+    <meta name="description" itemprop="description" content="千星奇域活动获奖名单。" />
+    <meta name="keywords" content="Octavia, 千星奇域, 原神, 获奖名单" />
+    <link rel="icon" href="/favicon.ico" />
+
+    <link rel="stylesheet" href="/lib/bootstrap.min.css" />
+    <link rel="stylesheet" href="/lib/font.css" />
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+    <header>
+        <nav class="navbar bg-body-tertiary">
+            <div class="container-fluid">
+                <a href="/" class="navbar-brand mb-0 h1">欧科塔维亚</a>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/index.html" class="btn btn-outline-secondary btn-sm" rel="noopener">奇域查询</a>
+                    <a href="/database.html" class="btn btn-outline-secondary btn-sm" rel="noopener">奇域数据库</a>
+                    <span class="text-muted">获奖名单</span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div id="body" class="container py-4">
+        <h2 class="mb-3">获奖名单</h2>
+
+        <div id="selectorSection" class="d-none">
+            <p class="text-muted small">选择一个活动，查看对应的获奖奇域。</p>
+            <div id="activityButtons" class="d-flex flex-wrap gap-2 mb-4"></div>
+        </div>
+
+        <div id="previewSection" class="d-none">
+            <h3 id="previewTitle" class="mb-3"></h3>
+            <div class="table-responsive mb-3">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>奖项</th>
+                            <th class="text-end">数量</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewTableBody"></tbody>
+                </table>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                <a id="previewActivityLink" class="btn btn-outline-secondary" target="_blank" rel="noopener">前往活动页面</a>
+                <button id="previewRenderButton" type="button" class="btn btn-primary">查看完整名单</button>
+            </div>
+        </div>
+
+        <div id="loadingState" class="text-center py-5 d-none">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+        </div>
+
+        <div id="emptyState" class="text-center py-5 px-3 d-none">
+            <h3 class="h5 mb-2">暂无信息</h3>
+            <p class="mb-0 text-muted">该活动暂未收录获奖名单，或数据暂时无法读取。</p>
+        </div>
+
+        <h3 id="activityTitle" class="mb-3 d-none"></h3>
+        <div id="groupsContainer"></div>
+    </div>
+
+    <footer class="mt-4">
+        <p class="text-center"><a href="/settings.html">设置</a></p>
+        <p class="text-center">Source Code is available on <a href="https://github.com/kj415j45/octavia">GitHub</a></p>
+        <p class="text-center">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
+    </footer>
+
+    <script src="/lib/bootstrap.bundle.min.js"></script>
+    <script src="/lib/common.js"></script>
+    <script>
+        const GROUP_VISIBLE_LIMIT = 8;
+        let awardRequestToken = 0;
+
+        const selectorSectionEl = document.getElementById('selectorSection');
+        const previewSectionEl = document.getElementById('previewSection');
+        const previewTitleEl = document.getElementById('previewTitle');
+        const previewTableBodyEl = document.getElementById('previewTableBody');
+        const previewActivityLinkEl = document.getElementById('previewActivityLink');
+        const previewRenderButtonEl = document.getElementById('previewRenderButton');
+        const loadingStateEl = document.getElementById('loadingState');
+        const emptyStateEl = document.getElementById('emptyState');
+        const activityTitleEl = document.getElementById('activityTitle');
+        const groupsContainerEl = document.getElementById('groupsContainer');
+
+        function showLoading(visible) {
+            loadingStateEl.classList.toggle('d-none', !visible);
+        }
+
+        function showEmpty(visible) {
+            emptyStateEl.classList.toggle('d-none', !visible);
+        }
+
+        function getRequestedTitleFromPath() {
+            const match = window.location.pathname.match(/\/award\/([^\/]+)/);
+            return match ? decodeURIComponent(match[1]) : null;
+        }
+
+        async function loadAwardData(title) {
+            try {
+                const response = await fetch(`/data/awards/${encodeURIComponent(title)}.json`);
+                if (response.ok) {
+                    return await response.json();
+                }
+            } catch (error) {
+                console.error(`Failed to load award data for ${title}:`, error);
+            }
+            return null;
+        }
+
+        function isAwardDataValid(data) {
+            return !!data && Array.isArray(data.groups) && data.groups.length > 0;
+        }
+
+        function getActivityLink(title) {
+            return activities.find((activity) => activity.title === title)?.link || null;
+        }
+
+        // No award data available for this activity — the award page has nothing to show, so
+        // send the visitor straight to the original activity link instead of a dead-end message
+        function handleMissingAwardData(title) {
+            const link = getActivityLink(title);
+            if (link) {
+                window.location.href = link;
+                return;
+            }
+            showEmpty(true);
+        }
+
+        function createSpinner() {
+            const spinner = document.createElement('div');
+            spinner.className = 'text-center py-3';
+            spinner.innerHTML = '<div class="spinner-border spinner-border-sm text-success" role="status"><span class="visually-hidden">加载中...</span></div>';
+            return spinner;
+        }
+
+        function isValidEntry(entry) {
+            return !!(entry && entry.stage && entry.stage.level);
+        }
+
+        async function fetchEntries(items, token) {
+            const results = await Promise.all(items.map(async (item) => {
+                try {
+                    const stage = await getStageInfo(item.region, item.guid);
+                    return { stage, note: item.note };
+                } catch (error) {
+                    console.error(`Failed to load award stage ${item.guid} (${item.region}):`, error);
+                    return null;
+                }
+            }));
+            return token === awardRequestToken ? results : [];
+        }
+
+        function buildStageRow(entries) {
+            const row = document.createElement('div');
+            row.className = 'row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4';
+
+            entries.forEach(({ stage, note }) => {
+                const col = document.createElement('div');
+                col.className = 'col';
+
+                const card = makeStageCard(stage, { showRegion: true });
+                if (note) {
+                    const noteBar = document.createElement('div');
+                    noteBar.className = 'card-footer text-center small text-muted';
+                    noteBar.textContent = note;
+                    card.appendChild(noteBar);
+                }
+
+                col.appendChild(card);
+                row.appendChild(col);
+            });
+
+            return row;
+        }
+
+        // Renders activity selection buttons for the bare /award landing page
+        function renderActivityButtons() {
+            const container = document.getElementById('activityButtons');
+            container.innerHTML = '';
+            activities.forEach((activity) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-outline-primary';
+                btn.textContent = activity.title;
+                btn.addEventListener('click', () => selectActivity(activity.title, btn));
+                container.appendChild(btn);
+            });
+        }
+
+        function setActiveButton(activeBtn) {
+            document.querySelectorAll('#activityButtons button').forEach((btn) => {
+                btn.classList.remove('active');
+            });
+            activeBtn.classList.add('active');
+        }
+
+        async function selectActivity(title, btnEl) {
+            setActiveButton(btnEl);
+            groupsContainerEl.innerHTML = '';
+            activityTitleEl.classList.add('d-none');
+            showEmpty(false);
+            showLoading(true);
+
+            const data = await loadAwardData(title);
+            showLoading(false);
+
+            if (!isAwardDataValid(data)) {
+                handleMissingAwardData(title);
+                return;
+            }
+
+            await runFullRender(title, data);
+        }
+
+        // Renders the lightweight, no-API-call preview shown when landing on /award/{title} directly
+        function renderPreviewTable(groups) {
+            previewTableBodyEl.innerHTML = '';
+            groups.forEach((group) => {
+                const tr = document.createElement('tr');
+                const nameTd = document.createElement('td');
+                nameTd.textContent = group.name;
+                const countTd = document.createElement('td');
+                countTd.className = 'text-end';
+                countTd.textContent = `${(group.items || []).length}`;
+                tr.appendChild(nameTd);
+                tr.appendChild(countTd);
+                previewTableBodyEl.appendChild(tr);
+            });
+        }
+
+        async function enterDirectMode(title) {
+            selectorSectionEl.classList.add('d-none');
+            previewSectionEl.classList.remove('d-none');
+            previewTitleEl.textContent = title;
+
+            const activityMeta = activities.find((activity) => activity.title === title);
+            if (activityMeta?.link) {
+                previewActivityLinkEl.href = activityMeta.link;
+                previewActivityLinkEl.classList.remove('disabled');
+                previewActivityLinkEl.removeAttribute('aria-disabled');
+            } else {
+                previewActivityLinkEl.href = '#';
+                previewActivityLinkEl.classList.add('disabled');
+                previewActivityLinkEl.setAttribute('aria-disabled', 'true');
+            }
+
+            showLoading(true);
+            const data = await loadAwardData(title);
+            showLoading(false);
+
+            if (!isAwardDataValid(data)) {
+                previewSectionEl.classList.add('d-none');
+                handleMissingAwardData(title);
+                return;
+            }
+
+            renderPreviewTable(data.groups);
+            previewRenderButtonEl.onclick = () => {
+                previewSectionEl.classList.add('d-none');
+                runFullRender(title, data);
+            };
+        }
+
+        async function runFullRender(title, data) {
+            const token = ++awardRequestToken;
+            groupsContainerEl.innerHTML = '';
+            showEmpty(false);
+            activityTitleEl.textContent = title;
+            activityTitleEl.classList.remove('d-none');
+            await renderGroups(data.groups, token);
+        }
+
+        async function renderGroup(group, groupIndex, token) {
+            const items = Array.isArray(group.items) ? group.items : [];
+            if (items.length === 0) return false;
+
+            const card = document.createElement('div');
+            card.className = 'card mb-4 shadow-sm';
+
+            const header = document.createElement('div');
+            header.className = 'card-header d-flex justify-content-between align-items-center';
+            const headerName = document.createElement('strong');
+            headerName.textContent = group.name;
+            const headerCount = document.createElement('span');
+            headerCount.className = 'badge bg-secondary';
+            headerCount.textContent = `${items.length}`;
+            header.appendChild(headerName);
+            header.appendChild(headerCount);
+            card.appendChild(header);
+
+            const body = document.createElement('div');
+            body.className = 'card-body';
+            card.appendChild(body);
+            groupsContainerEl.appendChild(card);
+
+            const visibleItems = items.slice(0, GROUP_VISIBLE_LIMIT);
+            const collapsedItems = items.slice(GROUP_VISIBLE_LIMIT);
+
+            const spinner = createSpinner();
+            body.appendChild(spinner);
+            const visibleEntries = (await fetchEntries(visibleItems, token)).filter(isValidEntry);
+            if (token !== awardRequestToken) return false;
+            spinner.remove();
+
+            let rendered = false;
+            if (visibleEntries.length) {
+                rendered = true;
+                body.appendChild(buildStageRow(visibleEntries));
+            }
+
+            if (collapsedItems.length > 0) {
+                const collapseId = `award-group-collapse-${groupIndex}`;
+                const expandLabel = `展开剩余 ${collapsedItems.length} 个`;
+
+                const toggleBtn = document.createElement('button');
+                toggleBtn.type = 'button';
+                toggleBtn.className = 'btn btn-outline-secondary btn-sm mt-3';
+                toggleBtn.textContent = expandLabel;
+                toggleBtn.setAttribute('data-bs-toggle', 'collapse');
+                toggleBtn.setAttribute('data-bs-target', `#${collapseId}`);
+
+                const collapseWrap = document.createElement('div');
+                collapseWrap.className = 'collapse mt-3';
+                collapseWrap.id = collapseId;
+
+                body.appendChild(toggleBtn);
+                body.appendChild(collapseWrap);
+
+                let loaded = false;
+                collapseWrap.addEventListener('show.bs.collapse', async () => {
+                    if (loaded) return;
+                    loaded = true;
+                    const collapsedSpinner = createSpinner();
+                    collapseWrap.appendChild(collapsedSpinner);
+
+                    const collapsedEntries = (await fetchEntries(collapsedItems, token)).filter(isValidEntry);
+                    if (token !== awardRequestToken) return;
+                    collapsedSpinner.remove();
+
+                    if (collapsedEntries.length) {
+                        rendered = true;
+                        collapseWrap.appendChild(buildStageRow(collapsedEntries));
+                    } else {
+                        const notice = document.createElement('p');
+                        notice.className = 'text-muted mb-0';
+                        notice.textContent = '剩余部分暂无可用数据。';
+                        collapseWrap.appendChild(notice);
+                    }
+                });
+                // Expansion is one-way: once shown, drop the toggle so it can't be collapsed again
+                collapseWrap.addEventListener('shown.bs.collapse', () => {
+                    toggleBtn.remove();
+                });
+            }
+
+            if (!rendered && collapsedItems.length === 0) {
+                const notice = document.createElement('p');
+                notice.className = 'text-muted mb-0';
+                notice.textContent = '本分组暂无可用数据。';
+                body.appendChild(notice);
+            }
+
+            return rendered || collapsedItems.length > 0;
+        }
+
+        async function renderGroups(groups, token) {
+            let anyRendered = false;
+
+            for (let i = 0; i < groups.length; i += 1) {
+                if (token !== awardRequestToken) return;
+                const groupRendered = await renderGroup(groups[i], i, token);
+                anyRendered = anyRendered || groupRendered;
+            }
+
+            if (!anyRendered) {
+                showEmpty(true);
+            }
+        }
+
+        (async function init() {
+            await Promise.all([getRegionMap(), loadActivities()]);
+            const requestedTitle = getRequestedTitleFromPath();
+            if (requestedTitle) {
+                await enterDirectMode(requestedTitle);
+            } else {
+                selectorSectionEl.classList.remove('d-none');
+                renderActivityButtons();
+            }
+        })();
+    </script>
+</body>
+
+</html>
