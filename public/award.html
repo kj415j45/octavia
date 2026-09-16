@@ -12,6 +12,15 @@
 
     <link rel="stylesheet" href="/lib/bootstrap.min.css" />
     <link rel="stylesheet" href="/lib/font.css" />
+    <style>
+        /* auto-fit lets a group with fewer cards than a full row stretch to use all available
+           width, while the minmax lower bound (>= 1/5 of the row) caps it at 5 columns per row */
+        .award-stage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(max(280px, (100% - 4 * 1.5rem) / 5), 1fr));
+            gap: 1.5rem;
+        }
+    </style>
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -28,16 +37,25 @@
         </nav>
     </header>
 
-    <div id="body" class="container py-4">
-        <h2 class="mb-3">获奖名单</h2>
+    <div id="body" class="container-fluid px-3 px-lg-4 py-4">
+        <div id="selectorSection" class="d-none container px-0">
+            <h2 class="mb-3">获奖名单</h2>
 
-        <div id="selectorSection" class="d-none">
             <p class="text-muted small">选择一个活动，查看对应的获奖奇域。</p>
             <div id="activityButtons" class="d-flex flex-wrap gap-2 mb-4"></div>
         </div>
 
-        <div id="previewSection" class="d-none">
-            <h3 id="previewTitle" class="mb-3"></h3>
+        <div id="previewSection" class="d-none container px-0">
+            <h3 class="mb-3 d-flex align-items-center gap-2">
+                <span id="previewTitleText"></span>
+                <a id="previewActivityLink" class="link-secondary d-none" target="_blank" rel="noopener"
+                    title="在新窗口中打开活动页面" aria-label="在新窗口中打开活动页面">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z" />
+                        <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z" />
+                    </svg>
+                </a>
+            </h3>
             <div class="table-responsive mb-3">
                 <table class="table table-sm align-middle">
                     <thead>
@@ -50,7 +68,6 @@
                 </table>
             </div>
             <div class="d-flex flex-wrap gap-2 mb-4">
-                <a id="previewActivityLink" class="btn btn-outline-secondary" target="_blank" rel="noopener">前往活动页面</a>
                 <button id="previewRenderButton" type="button" class="btn btn-primary">查看完整名单</button>
             </div>
         </div>
@@ -66,7 +83,16 @@
             <p class="mb-0 text-muted">该活动暂未收录获奖名单，或数据暂时无法读取。</p>
         </div>
 
-        <h3 id="activityTitle" class="mb-3 d-none"></h3>
+        <h3 id="activityTitle" class="mb-3 d-none d-flex align-items-center gap-2">
+            <span id="activityTitleText"></span>
+            <a id="activityTitleLink" class="link-secondary d-none" target="_blank" rel="noopener"
+                title="在新窗口中打开活动页面" aria-label="在新窗口中打开活动页面">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z" />
+                    <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z" />
+                </svg>
+            </a>
+        </h3>
         <div id="groupsContainer"></div>
     </div>
 
@@ -79,18 +105,20 @@
     <script src="/lib/bootstrap.bundle.min.js"></script>
     <script src="/lib/common.js"></script>
     <script>
-        const GROUP_VISIBLE_LIMIT = 8;
+        const GROUP_VISIBLE_LIMIT = 10;
         let awardRequestToken = 0;
 
         const selectorSectionEl = document.getElementById('selectorSection');
         const previewSectionEl = document.getElementById('previewSection');
-        const previewTitleEl = document.getElementById('previewTitle');
+        const previewTitleTextEl = document.getElementById('previewTitleText');
         const previewTableBodyEl = document.getElementById('previewTableBody');
         const previewActivityLinkEl = document.getElementById('previewActivityLink');
         const previewRenderButtonEl = document.getElementById('previewRenderButton');
         const loadingStateEl = document.getElementById('loadingState');
         const emptyStateEl = document.getElementById('emptyState');
         const activityTitleEl = document.getElementById('activityTitle');
+        const activityTitleTextEl = document.getElementById('activityTitleText');
+        const activityTitleLinkEl = document.getElementById('activityTitleLink');
         const groupsContainerEl = document.getElementById('groupsContainer');
 
         function showLoading(visible) {
@@ -124,6 +152,13 @@
 
         function getActivityLink(title) {
             return activities.find((activity) => activity.title === title)?.link || null;
+        }
+
+        // Shows/hides the "open in new window" icon next to an activity title based on link availability
+        function setActivityLinkIcon(anchorEl, title) {
+            const link = getActivityLink(title);
+            anchorEl.classList.toggle('d-none', !link);
+            anchorEl.href = link || '#';
         }
 
         // No award data available for this activity — the award page has nothing to show, so
@@ -162,13 +197,10 @@
         }
 
         function buildStageRow(entries) {
-            const row = document.createElement('div');
-            row.className = 'row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4';
+            const grid = document.createElement('div');
+            grid.className = 'award-stage-grid';
 
             entries.forEach(({ stage, note }) => {
-                const col = document.createElement('div');
-                col.className = 'col';
-
                 const card = makeStageCard(stage, { showRegion: true });
                 if (note) {
                     const noteBar = document.createElement('div');
@@ -177,11 +209,10 @@
                     card.appendChild(noteBar);
                 }
 
-                col.appendChild(card);
-                row.appendChild(col);
+                grid.appendChild(card);
             });
 
-            return row;
+            return grid;
         }
 
         // Renders activity selection buttons for the bare /award landing page
@@ -242,18 +273,8 @@
         async function enterDirectMode(title) {
             selectorSectionEl.classList.add('d-none');
             previewSectionEl.classList.remove('d-none');
-            previewTitleEl.textContent = title;
-
-            const activityMeta = activities.find((activity) => activity.title === title);
-            if (activityMeta?.link) {
-                previewActivityLinkEl.href = activityMeta.link;
-                previewActivityLinkEl.classList.remove('disabled');
-                previewActivityLinkEl.removeAttribute('aria-disabled');
-            } else {
-                previewActivityLinkEl.href = '#';
-                previewActivityLinkEl.classList.add('disabled');
-                previewActivityLinkEl.setAttribute('aria-disabled', 'true');
-            }
+            previewTitleTextEl.textContent = title;
+            setActivityLinkIcon(previewActivityLinkEl, title);
 
             showLoading(true);
             const data = await loadAwardData(title);
@@ -276,7 +297,8 @@
             const token = ++awardRequestToken;
             groupsContainerEl.innerHTML = '';
             showEmpty(false);
-            activityTitleEl.textContent = title;
+            activityTitleTextEl.textContent = title;
+            setActivityLinkIcon(activityTitleLinkEl, title);
             activityTitleEl.classList.remove('d-none');
             await renderGroups(data.groups, token);
         }
@@ -292,17 +314,34 @@
             header.className = 'card-header d-flex justify-content-between align-items-center';
             const headerName = document.createElement('strong');
             headerName.textContent = group.name;
+
+            const headerRight = document.createElement('div');
+            headerRight.className = 'd-flex align-items-center gap-2';
             const headerCount = document.createElement('span');
             headerCount.className = 'badge bg-secondary';
             headerCount.textContent = `${items.length}`;
+            const groupToggleBtn = document.createElement('button');
+            groupToggleBtn.type = 'button';
+            groupToggleBtn.className = 'btn btn-sm btn-outline-secondary';
+            groupToggleBtn.textContent = '收起';
+            headerRight.appendChild(headerCount);
+            headerRight.appendChild(groupToggleBtn);
+
             header.appendChild(headerName);
-            header.appendChild(headerCount);
+            header.appendChild(headerRight);
             card.appendChild(header);
 
             const body = document.createElement('div');
             body.className = 'card-body';
             card.appendChild(body);
             groupsContainerEl.appendChild(card);
+
+            // Collapsing a whole group only hides already-rendered content; it never re-fetches
+            groupToggleBtn.addEventListener('click', () => {
+                const collapsing = body.style.display !== 'none';
+                body.style.display = collapsing ? 'none' : '';
+                groupToggleBtn.textContent = collapsing ? '展开' : '收起';
+            });
 
             const visibleItems = items.slice(0, GROUP_VISIBLE_LIMIT);
             const collapsedItems = items.slice(GROUP_VISIBLE_LIMIT);
