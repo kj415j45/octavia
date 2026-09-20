@@ -15,8 +15,6 @@ function getCachedStageTextFields(result: any) {
 		name: result?.level?.meta?.name || null,
 		intro: result?.level?.meta?.intro || null,
 		description: result?.level?.meta?.description || null,
-		goodRate: result?.level?.meta?.goodRate || null,
-		category: result?.level?.meta?.category || null,
 	};
 }
 
@@ -235,7 +233,7 @@ export async function getStageInfo(region: string, stageId: string) {
 		const createdAt = cached ? Math.floor(cached.created_at as number) : now;
 		const expiresAt = now + Global.CACHE_TTL;
 		const rotateAt = now + Global.ROTATE_INTERVAL;
-		const { name, intro, description, goodRate, category } = getCachedStageTextFields(result);
+		const { name, intro, description } = getCachedStageTextFields(result);
 		let cachedVersionInfo: any = null;
 		if (cached?.data) {
 			try {
@@ -248,9 +246,9 @@ export async function getStageInfo(region: string, stageId: string) {
 
 		await db
 			.prepare(
-					'INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, name, intro, description, good_rate, category, deleted, data, created_at, expires_at, rotate_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)',
+					'INSERT OR REPLACE INTO stage_cache (region, stage_id, uid, name, intro, description, deleted, data, created_at, expires_at, rotate_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)',
 				)
-				.bind(region, normalizedStageId, uid, name, intro, description, goodRate, category, JSON.stringify(result), createdAt, expiresAt, rotateAt)
+				.bind(region, normalizedStageId, uid, name, intro, description, JSON.stringify(result), createdAt, expiresAt, rotateAt)
 				.run();
 		// 更新作者信息表
 		if (uid && result?.author) {

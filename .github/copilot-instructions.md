@@ -2,7 +2,7 @@
 
 ## 项目简介
 
-**Octavia**（欧科塔维亚）是一个运行在 **Cloudflare Workers** 上的 TypeScript 后端服务，为《原神》**千星奇域**（Miliastra Wonderland）功能提供数据查询、缓存和排行榜服务。  
+**Octavia**（欧科塔维亚）是一个运行在 **Cloudflare Workers** 上的 TypeScript 后端服务，为《原神》**千星奇域**（Miliastra Wonderland）功能提供数据查询和缓存服务。  
 线上域名：`octavia.kj415j45.space`
 
 ---
@@ -31,19 +31,17 @@ octavia/
 │   ├── global.ts         # 全局单例：env / ctx 存取
 │   ├── logger.ts         # 带标签日志工具 taggedLogger(tag)
 │   ├── octavia.ts        # HoYo API 客户端（核心爬取逻辑）+ StageNotFoundError
-│   ├── scheduled.ts      # Cron 任务：缓存滚动更新 + 排行榜生成
+│   ├── scheduled.ts      # Cron 任务：缓存滚动更新
 │   └── apis/
 │       ├── stage_info.ts     # GET /api/stage — 带缓存的奇域详情
 │       ├── stage_search.ts   # GET /api/search/stage — D1 LIKE 搜索
 │       ├── status.ts         # GET /api/status — Analytics Engine 监控数据
 │       ├── author.ts         # GET /api/author — 作者信息查询
-│       ├── leaderboard.ts    # GET /api/leaderboard — 好评率排行榜
 │       └── maintain.ts       # POST /api/maintain — TOTP 保护的运维接口
 ├── public/               # 静态前端（Bootstrap 5 + 原生 JS）
 │   ├── index.html        # 主页（奇域查询）
 │   ├── database.html     # 奇域数据库
 │   ├── author.html       # 作者页
-│   ├── leaderboard.html  # 排行榜
 │   ├── status.html       # 服务状态
 │   ├── maintain.html     # 运维控制台
 │   └── lib/
@@ -84,7 +82,6 @@ interface Env {
 | `GET` | `/api/bonus?hash=` | KV 奖励内容读取 |
 | `GET` | `/api/status` | 服务可观测性数据 |
 | `GET` | `/api/author?id=` | 作者信息查询 |
-| `GET` | `/api/leaderboard` | 好评率排行榜 |
 | `POST` | `/api/maintain` | 运维操作（TOTP 鉴权） |
 | `OPTIONS` | `*` | CORS 预检（全局返回 200） |
 
@@ -103,10 +100,6 @@ interface Env {
 ### `author` — 作者信息
 主键 `uid`。字段：`avatar`, `name`, `ingame_name`, `pendant`。
 
-### `goodrate_leaderboard` — 好评率排行榜快照
-每日 04:00 北京时间（UTC 20:00）生成快照。  
-`rank_type`: `'top'`（前 20）/ `'bottom'`（后 10）。
-
 ---
 
 ## 缓存与调度策略
@@ -115,7 +108,6 @@ interface Env {
 - `ROTATE_INTERVAL = 28800s`（8 小时）：主动刷新间隔  
 - Cron `* * * * *`：每分钟取 `rotate_at <= now` 的 5 条记录批量刷新  
 - 失败时采用指数退避（随机乘数 1~3×），最长退避 7 天  
-- Cron `0 20 * * *`：每日更新排行榜快照  
 
 ---
 
@@ -154,7 +146,6 @@ TOTP 采用 RFC 6238（±2 步 / ±60 秒窗口），密钥 Base32 编码，使�
 | action | 参数 | 说明 |
 |--------|------|------|
 | `flush_cache` | `region`, `stage_ids[]` | 强制过期并后台重拉 |
-| `update_leaderboard` | — | 立即重建排行榜快照 |
 | `get_kv` | `hash` | 读取 KV 值 |
 | `set_kv` | `hash`, `value` | 写入 KV 值 |
 

@@ -78,16 +78,6 @@
             </div>
         </div>
 
-        <!-- ── 手动触发排行榜更新 ── -->
-        <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">排行榜更新</h5></div>
-            <div class="card-body">
-                <p class="text-muted mb-3">手动触发好评率排行榜重新计算（通常由定时任务每日执行）。</p>
-                <button class="btn btn-primary" onclick="triggerAction('update_leaderboard')">立即更新排行榜</button>
-                <div id="leaderboardResult" class="mt-3"></div>
-            </div>
-        </div>
-
         <!-- ── KV 记录（查询 / 新增 / 修改） ── -->
         <div class="card mb-4">
             <div class="card-header"><h5 class="mb-0">KV 记录管理</h5></div>
@@ -393,11 +383,6 @@
                 if (!guid) { alert('请输入 GUID'); return; }
                 const result = await callApi({ action: 'inspect_stage_cache', region, guid });
                 renderResult('inspectResult', result);
-            },
-
-            update_leaderboard: async (btn) => {
-                const result = await callApi({ action: 'update_leaderboard' });
-                renderResult('leaderboardResult', result);
             },
 
             get_kv: async (btn) => {

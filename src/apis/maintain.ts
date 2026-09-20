@@ -1,5 +1,5 @@
 import { getStageInfo } from './stage_info';
-import { updateLeaderboard, ROTATE_BATCH_SIZE } from '../scheduled';
+import { ROTATE_BATCH_SIZE } from '../scheduled';
 import { Regions } from '../octavia';
 import { Global } from '../global';
 import { taggedLogger } from '../logger';
@@ -136,16 +136,6 @@ export async function handleMaintain(request: Request): Promise<Response> {
 			return jsonOk({ results });
 		}
 
-		case 'update_leaderboard': {
-			try {
-				await updateLeaderboard();
-				return jsonOk({ message: '排行榜已更新' });
-			} catch (e: any) {
-				logger.error('排行榜更新失败:', e);
-				return jsonError(`排行榜更新失败: ${e.message}`, 500);
-			}
-		}
-
 		case 'get_kv': {
 			const hash = body.hash as string;
 			if (!hash || typeof hash !== 'string') return jsonError('需要 hash', 400);
@@ -196,7 +186,7 @@ export async function handleMaintain(request: Request): Promise<Response> {
 			const db = env.DB;
 			const row = await db
 				.prepare(
-					`SELECT region, stage_id, uid, name, intro, description, good_rate, category, deleted, data, created_at, expires_at, rotate_at
+					`SELECT region, stage_id, uid, name, intro, description, deleted, data, created_at, expires_at, rotate_at
 					 FROM stage_cache
 					 WHERE region = ? AND stage_id = ?
 					 LIMIT 1`,
@@ -209,8 +199,6 @@ export async function handleMaintain(request: Request): Promise<Response> {
 					name: string | null;
 					intro: string | null;
 					description: string | null;
-					good_rate: string | null;
-					category: string | null;
 					deleted: number;
 					data: string;
 					created_at: number;
@@ -302,7 +290,7 @@ export async function handleMaintain(request: Request): Promise<Response> {
 				case 'by_category': {
 					const rows = await db
 						.prepare(
-							"SELECT COALESCE(category, '(未分类)') AS category, COUNT(*) AS c FROM stage_cache GROUP BY category ORDER BY c DESC",
+							"SELECT COALESCE(json_extract(data, '$.level.meta.category'), '(未分类)') AS category, COUNT(*) AS c FROM stage_cache GROUP BY category ORDER BY c DESC",
 						)
 						.all();
 					return jsonOk({ metric, rows: rows.results ?? [] });

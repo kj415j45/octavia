@@ -3,7 +3,6 @@ import { searchStages } from './apis/stage_search';
 import { StageNotFoundError } from './octavia';
 import { getStatusData } from './apis/status';
 import { getAuthorInfo } from './apis/author';
-import { getLeaderboard } from './apis/leaderboard';
 import { handleMaintain } from './apis/maintain';
 import { runScheduled } from './scheduled';
 import { Global } from './global';
@@ -64,10 +63,6 @@ export default {
 					case 'author': {
 						const id = url.searchParams.get('id') || '';
 						const data = await getAuthorInfo(id);
-						return JSONResponse(data);
-					}
-					case 'leaderboard': {
-						const data = await getLeaderboard();
 						return JSONResponse(data);
 					}
 					default: {
