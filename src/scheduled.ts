@@ -2,12 +2,26 @@ import octavia, { Regions, StageNotFoundError } from './octavia';
 import { Global } from './global';
 import { taggedLogger } from './logger';
 import { mergeVersionInfo } from './apis/stage_info';
+import { syncActivityStageList } from './activity';
 
 const MAX_BACKOFF = 7 * 24 * 3600; // 最大退避时间：7天
 export const ROTATE_BATCH_SIZE = 5;
 const logger = taggedLogger('scheduled');
 
+// 当前唯一活动，后续活动变化时需手动更新
+const ACTIVITY_EVENT_ID = 'e20260923contribution';
+const ACTIVITY_REGION = 'cn_gf01';
+
 export async function runScheduled(cron?: string) {
+	if (cron === '*/35 * * * *') {
+		try {
+			await syncActivityStageList(ACTIVITY_EVENT_ID, ACTIVITY_REGION);
+		} catch (error) {
+			logger.error('Failed to sync activity stage list:', error);
+		}
+		return;
+	}
+
 	const env = Global.getEnv();
 	const db = env.DB;
 	const now = Math.floor(Date.now() / 1000);

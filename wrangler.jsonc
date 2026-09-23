@@ -44,7 +44,8 @@
 	],
 	"triggers": {
 		"crons": [
-			"* * * * *"
+			"* * * * *",
+			"*/35 * * * *"
 		]
 	},
 	"analytics_engine_datasets": [
