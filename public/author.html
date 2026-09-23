@@ -105,12 +105,15 @@
                 return;
             }
 
+            // 按游戏内uid查询时，地址始终保持x前缀形式，不做归一化跳转
+            const queriedByIngameUid = uid.startsWith('x');
+
             try {
                 // Fetch author info
                 const authorData = await getAuthorInfo(uid);
 
                 // Update URL with actual UID if it was normalized
-                if (authorData.uid !== uid) {
+                if (!queriedByIngameUid && authorData.uid !== uid) {
                     window.history.replaceState(null, '', `/author/${authorData.uid}`);
                     uid = authorData.uid;
                 }
@@ -119,7 +122,7 @@
                 await getRegionMap();
 
                 // Display author info
-                displayAuthorInfo(authorData);
+                displayAuthorInfo(authorData, { queriedByIngameUid });
 
                 // Load stages
                 await loadAuthorStages(authorData.stages);
@@ -130,16 +133,16 @@
             }
         }
 
-        function displayAuthorInfo(author) {
+        function displayAuthorInfo(author, { queriedByIngameUid = false } = {}) {
             const authorInfoDiv = document.getElementById('authorInfo');
-            
-            // Determine platform links
-            const isMiyoushe = author.uid.startsWith('m');
-            const isHoyolab = author.uid.startsWith('h');
-            
+
+            // 无aid（如仅采集到游戏内信息）时author.uid为null
+            const isMiyoushe = author.uid?.startsWith('m') ?? false;
+            const isHoyolab = author.uid?.startsWith('h') ?? false;
+
             // Extract numeric ID for platform links
-            const numericId = author.uid.substring(1);
-            
+            const numericId = author.uid?.substring(1);
+
             let platformLinks = '';
             if (isMiyoushe) {
                 platformLinks = `
@@ -163,12 +166,16 @@
             if (serverUids.length > 0) {
                 const items = serverUids.map(({ region, uid }) => {
                     const regionName = (regionMap[region] && regionMap[region].name) || region;
-                    const regionLink = `${regionMap[region].component}/${uid}?region=${region}`;
+                    // 通过游戏内uid查询时，跳转官方component-store；否则跳转我们自己的uid查询页，留住用户
+                    const regionLink = queriedByIngameUid
+                        ? `${regionMap[region].component}/${uid}?region=${region}`
+                        : `/author/x${uid}`;
+                    const linkAttrs = queriedByIngameUid ? 'target="_blank" rel="noopener"' : '';
                     return `
                         <div>
                             <div class="text-muted">${regionName}</div>
                             <div class="font-monospace">
-                                <a href="${regionLink}" target="_blank" rel="noopener">${uid}</a>
+                                <a href="${regionLink}" ${linkAttrs}>${uid}</a>
                             </div>
                         </div>
                     `;
@@ -178,6 +185,12 @@
                         ${items}
                     </div>
                 `;
+            }
+
+            // 通过游戏内uid查询且能解析出真实账号时，提供跳转账号主页的入口
+            let accountPageLink = '';
+            if (queriedByIngameUid && author.uid) {
+                accountPageLink = `<a href="/author/${author.uid}" class="btn btn-sm btn-outline-secondary mt-2">查看账号主页</a>`;
             }
 
             authorInfoDiv.innerHTML = `
@@ -200,6 +213,8 @@
                         </div>
 
                         ${serverUidsHtml}
+
+                        ${accountPageLink}
                     </div>
                 </div>
             `;
