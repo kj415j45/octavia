@@ -935,17 +935,17 @@ function makeStageCard(stage, options = {}) {
     const mysUid = author.mys?.aid ? `m${author.mys.aid}` : null;
     const hylUid = author.hyl?.aid ? `h${author.hyl.aid}` : null;
     const authorUid = author.mys?.aid || author.hyl?.aid || "0";
-    const authorLinkHref = authorUid !== "0" ? (linkToPlatform ? `${authorEndpointBase}?id=${authorUid}` : `/author/${mysUid ?? hylUid ?? authorUid}`) : '#';
+    const gameUid = author.game?.uid != null ? String(author.game.uid) : String(guidToUid(level.id).uid);
+    // 没有aid（未采集到平台账号）时，跳转到我们自己按游戏内uid查询的作者页
+    const authorLinkHref = authorUid !== "0"
+        ? (linkToPlatform ? `${authorEndpointBase}?id=${authorUid}` : `/author/${mysUid ?? hylUid ?? authorUid}`)
+        : `/author/x${gameUid}`;
 
     const authorLink = document.createElement('a');
     authorLink.href = authorLinkHref;
     authorLink.className = 'd-flex align-items-center text-decoration-none';
     authorLink.target = '_blank';
     authorLink.rel = 'noopener';
-    if (authorUid == "0") {
-        authorLink.style.pointerEvents = 'none';
-        authorLink.style.cursor = 'default';
-    }
 
     // Create avatar container to hold avatar and pendant
     const avatarContainer = document.createElement('div');
@@ -981,10 +981,8 @@ function makeStageCard(stage, options = {}) {
     authorLink.appendChild(avatarContainer);
     authorLink.appendChild(authorName);
 
-    const calculatedUid = guidToUid(level.id).uid;
-    const authorGameUid = author.game?.uid != null ? String(author.game.uid) : String(calculatedUid);
-    if (authorGameUid) {
-        attachTooltip(authorLink, `UID：${authorGameUid}`);
+    if (gameUid) {
+        attachTooltip(authorLink, `UID：${gameUid}`);
     }
 
     authorInfo.appendChild(authorLink);
