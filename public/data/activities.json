@@ -1,7 +1,9 @@
 [
   {
     "title": "千星之约",
-    "match": {},
+    "match": {
+      "list": "e20260923contribution:cn_gf01"
+    },
     "link": "https://act.mihoyo.com/ys/event/e20260923creator/index.html"
   },
   {

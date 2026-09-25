@@ -3,6 +3,7 @@ import { searchStages } from './apis/stage_search';
 import { StageNotFoundError } from './octavia';
 import { getStatusData } from './apis/status';
 import { getAuthorInfo } from './apis/author';
+import { getActivityStageGuids } from './apis/activity';
 import { handleMaintain } from './apis/maintain';
 import { runScheduled } from './scheduled';
 import { Global } from './global';
@@ -63,6 +64,14 @@ export default {
 					case 'author': {
 						const id = url.searchParams.get('id') || '';
 						const data = await getAuthorInfo(id);
+						return JSONResponse(data);
+					}
+					case 'activity': {
+						const id = url.searchParams.get('id') || '';
+						if (!id) {
+							return JSONResponse({ error: 'Activity ID is required' }, { status: 400 });
+						}
+						const data = await getActivityStageGuids(id);
 						return JSONResponse(data);
 					}
 					default: {

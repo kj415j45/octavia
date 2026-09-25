@@ -234,7 +234,7 @@ async function generateStageImage(stages, options = {}) {
                 });
             }
 
-            const specialTags = extractSpecialTag(stage.level.meta, activities);
+            const specialTags = extractSpecialTag(stage, activities);
             specialTags.forEach(tag => {
                 const specialTag = document.createElement('span');
                 specialTag.textContent = tag;

@@ -237,6 +237,23 @@ async function populateRegionDropdown(currentRegion = 'cn_gf01') {
 async function loadActivities() {
     const response = await fetch(`${baseUrl}/data/activities.json`);
     activities = await response.json();
+
+    await Promise.all(activities.map(async (activity) => {
+        if (!activity.match.list) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseUrl}/api/activity?id=${encodeURIComponent(activity.match.list)}`);
+            if (!response.ok) {
+                throw new Error(`Activity request failed: ${response.status}`);
+            }
+            activity.stageIds = new Set(await response.json());
+        } catch (error) {
+            console.warn(`Failed to load activity list ${activity.match.list}:`, error);
+            activity.stageIds = new Set();
+        }
+    }));
 }
 
 // API utilities
@@ -587,9 +604,14 @@ function showChangelogModal(versionInfo) {
 }
 
 function extractSpecialTag(stage, activities) {
+    const meta = stage.level.meta;
+    const stageId = String(stage.level.id);
     const specialTags = [];
     activities.forEach(activity => {
-        if (stage.description.includes(activity.match.description)) {
+        const matchesDescription = activity.match.description
+            && meta.description.includes(activity.match.description);
+        const matchesList = activity.stageIds?.has(stageId);
+        if (matchesDescription || matchesList) {
             specialTags.push(activity.title);
         }
     });
@@ -897,7 +919,7 @@ function makeStageCard(stage, options = {}) {
     leftTags.appendChild(document.createElement('br'));
     leftTags.appendChild(playerNumTag);
 
-    const specialTags = extractSpecialTag(meta, activities);
+    const specialTags = extractSpecialTag(stage, activities);
     specialTags.forEach(tag => {
         const specialTag = document.createElement('a');
         specialTag.className = 'badge bg-danger me-1';
