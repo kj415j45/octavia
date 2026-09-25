@@ -1,21 +1,24 @@
 ---
-applyTo: "src/scheduled.ts"
+applyTo: "{src/scheduled.ts,src/schedule/**}"
 ---
 
 # 定时任务 — 编码规范
 
 ## Cron 分发逻辑
 
-`runScheduled(cron)` 通过 `cron` 字符串区分任务：
+`src/scheduled.ts` 的 `runScheduled(cron)` 通过 `cron` 字符串分发任务，`src/index.ts` 的 `scheduled` 处理器只负责调用它：
 
 | Cron 表达式 | 触发时间 | 任务 |
 |-------------|----------|------|
 | `* * * * *` | 每分钟 | 滚动刷新最多 5 条到期缓存 |
-| `*/35 * * * *` | 每 35 分钟 | 同步活动奇域列表（`src/activity.ts` 的 `syncActivityStageList`） |
+| `*/35 * * * *` | 每 35 分钟 | 同步活动奇域列表（`src/schedule/activity_stage_list.ts` 的 `syncActivityStageList`） |
 
 新增 Cron 时：
 1. 在 `wrangler.jsonc` 的 `triggers.crons` 数组添加表达式。
-2. 在 `runScheduled` 中用 `if (cron === '...')` 分支处理。
+2. 在 `src/schedule/` 新建独立任务模块。
+3. 在 `src/scheduled.ts` 的 `runScheduled` 中用 `if (cron === '...')` 分支调用任务。
+
+每个任务都必须显式匹配其 Cron 表达式；未知的 Cron 不执行任何任务。
 
 ## 活动奇域列表同步（`*/35 * * * *`）
 
@@ -23,7 +26,7 @@ applyTo: "src/scheduled.ts"
 - 为压缩存储，`items` 为 `[guid, first_online_time]` 元组数组，未保留 `level_name`/`score` 等字段（暂无使用场景）。
 - 上游接口 `hk4e-api.mihoyo.com/event/{event_id}/contest_level_list` 按 `first_online_time` 降序返回，翻页直到某条记录的 `first_online_time <= 已存的 latest_first_online_time`（说明已追上）或 `is_end`/无 `next_cursor`。
 - 新旧数据按 `guid` 合并（新数据覆盖同 `guid` 旧数据），合并后按 `first_online_time` 降序重新排序并整体写回 `data` 列。
-- 活动 ID（`e20260923contribution`）、`region` 硬编码在 `src/scheduled.ts` 顶部常量中；`game_biz`（`hk4e_cn`）硬编码在 `src/activity.ts`，均在活动变化时需手动更新。
+- 活动 ID（`e20260923contribution`）、`region` 与 `game_biz`（`hk4e_cn`）均硬编码在 `src/schedule/activity_stage_list.ts` 中，活动变化时需手动更新。
 
 ## 缓存滚动刷新（`* * * * *`）
 

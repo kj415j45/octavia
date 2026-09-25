@@ -1,137 +1,18 @@
-import octavia, { Regions, StageNotFoundError } from './octavia';
-import { Global } from './global';
+import { syncActivityStageList } from './schedule/activity_stage_list';
+import { rotateStageCache } from './schedule/rotate_stage_cache';
 import { taggedLogger } from './logger';
-import { mergeVersionInfo } from './apis/stage_info';
-import { syncActivityStageList } from './activity';
 
-const MAX_BACKOFF = 7 * 24 * 3600; // 最大退避时间：7天
-export const ROTATE_BATCH_SIZE = 5;
-const logger = taggedLogger('scheduled');
-
-// 当前唯一活动，后续活动变化时需手动更新
-const ACTIVITY_EVENT_ID = 'e20260923contribution';
-const ACTIVITY_REGION = 'cn_gf01';
+const log = taggedLogger('scheduled');
 
 export async function runScheduled(cron?: string) {
 	if (cron === '*/35 * * * *') {
-		try {
-			await syncActivityStageList(ACTIVITY_EVENT_ID, ACTIVITY_REGION);
-		} catch (error) {
-			logger.error('Failed to sync activity stage list:', error);
-		}
+		await syncActivityStageList();
 		return;
 	}
 
-	const env = Global.getEnv();
-	const db = env.DB;
-	const now = Math.floor(Date.now() / 1000);
-
-	// 取出需要滚动更新的记录（rotate_at <= now，按 rotate_at ASC 取前5）
-	const rows = await db
-		.prepare(
-			'SELECT region, stage_id, expires_at, rotate_at, data FROM stage_cache WHERE rotate_at <= ? ORDER BY rotate_at ASC LIMIT ?',
-		)
-		.bind(now, ROTATE_BATCH_SIZE)
-		.all();
-
-	if (!rows.results || rows.results.length === 0) {
-		return;
+	if (cron === '* * * * *') {
+		await rotateStageCache();
 	}
 
-	await Promise.allSettled(
-		rows.results.map(async (row) => {
-			const region = row.region as string;
-			const stageId = row.stage_id as string;
-			const oldExpiresAt = row.expires_at as number || 0;
-			const rotateAt = row.rotate_at as number | null || null;
-
-			const startTime = Date.now();
-			let success = true;
-			let errorMsg = '';
-			let endTime;
-
-			try {
-				const result = await octavia.getStageInfo(region as Regions, stageId);
-				endTime = Date.now();
-
-				// 查询成功：更新缓存数据和 rotate_at
-				const newNow = Math.floor(Date.now() / 1000);
-				const expiresAt = newNow + Global.CACHE_TTL;
-				const nextRotateAt = Math.floor(newNow + Global.ROTATE_INTERVAL);
-
-				let cachedVersionInfo: any = null;
-				if (row.data) {
-					try {
-						cachedVersionInfo = JSON.parse(row.data as string)?.level?.version ?? null;
-					} catch (error) {
-						logger.warn('Failed to parse cached version info:', error);
-					}
-				}
-				result.level.version = mergeVersionInfo(result.level.version, cachedVersionInfo, newNow);
-
-				// 提取uid
-				let uid: string | null = null;
-				if (result?.author) {
-					if (result.author.mys?.aid) {
-						uid = `m${result.author.mys.aid}`;
-					} else if (result.author.hyl?.aid) {
-						uid = `h${result.author.hyl.aid}`;
-					}
-				}
-
-				// 提取文本字段
-				const name = result?.level?.meta?.name || null;
-				const intro = result?.level?.meta?.intro || null;
-				const description = result?.level?.meta?.description || null;
-
-				await db
-					.prepare(
-						'UPDATE stage_cache SET uid = ?, name = ?, intro = ?, description = ?, deleted = 0, data = ?, expires_at = ?, rotate_at = ? WHERE region = ? AND stage_id = ?',
-					)
-					.bind(uid, name, intro, description, JSON.stringify(result), expiresAt, nextRotateAt, region, stageId)
-					.run();
-
-				// 更新作者信息表
-				if (uid && result?.author) {
-					const author = result.author;
-					const platformInfo = uid.startsWith('m') ? author.mys : author.hyl;
-					const avatar = platformInfo?.avatar || author.game?.avatar || octavia.getDefaultAvatar();
-					const authorName = platformInfo?.name || null;
-					const ingameName = author.game?.name || null;
-					const pendant = uid.startsWith('h') ? author.hyl?.pendant : null;
-
-					await db
-						.prepare('INSERT OR REPLACE INTO author (uid, avatar, name, ingame_name, pendant) VALUES (?, ?, ?, ?, ?)')
-						.bind(uid, avatar, authorName, ingameName, pendant)
-						.run();
-				}
-			} catch (error: any) {
-				success = false;
-				errorMsg = error.message || 'Unknown error';
-				logger.error(`Failed to query stage ${stageId} in ${region}:`, error);
-
-				// 查询失败：增量退避
-				const multipier = 1 + Math.random() * 2; // 退避倍数
-				const newNow = Math.floor(Date.now() / 1000);
-				const currentInterval = rotateAt !== null ? (rotateAt - oldExpiresAt) * multipier : Global.ROTATE_INTERVAL;
-				const backoff = Math.min(Math.max(currentInterval, Global.ROTATE_INTERVAL), MAX_BACKOFF);
-				const nextRotateAt = Math.floor(newNow + backoff);
-
-				const isNotFound = error instanceof StageNotFoundError;
-				await db
-					.prepare('UPDATE stage_cache SET deleted = ?, rotate_at = ? WHERE region = ? AND stage_id = ?')
-					.bind(isNotFound ? 1 : 0, nextRotateAt, region, stageId)
-					.run();
-			}
-
-			const duration = (endTime || Date.now()) - startTime;
-
-			// 写入 Analytics Engine
-			env.analytics.writeDataPoint({
-				indexes: [`${region}-${stageId}`],
-				doubles: [duration, success ? 1 : 0],
-				blobs: [success ? '' : errorMsg],
-			});
-		}),
-	);
+	log.warn(`Unknown cron expression: ${cron}`);
 }

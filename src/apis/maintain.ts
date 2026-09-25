@@ -1,5 +1,5 @@
 import { getStageInfo } from './stage_info';
-import { ROTATE_BATCH_SIZE } from '../scheduled';
+import { ROTATE_BATCH_SIZE } from '../schedule/rotate_stage_cache';
 import { Regions } from '../octavia';
 import { Global } from '../global';
 import { taggedLogger } from '../logger';

@@ -1,8 +1,11 @@
-import { Global } from './global';
-import { taggedLogger } from './logger';
+import { Global } from '../global';
+import { taggedLogger } from '../logger';
 
-const logger = taggedLogger('activity');
+// 当前唯一活动，后续活动变化时需手动更新
+const ACTIVITY_EVENT_ID = 'e20260923contribution';
+const ACTIVITY_REGION = 'cn_gf01';
 const defaultUA = 'Octavia/1.0.0 (kj415j45/octavia)';
+const logger = taggedLogger('scheduled:activity_stage_list');
 
 // 压缩存储：[guid, first_online_time]，其余字段暂无使用场景
 type ActivityStageItem = [string, number];
@@ -14,12 +17,12 @@ interface ActivityStageData {
 }
 
 /**
- * 同步单个活动（活动ID + 大区）的奇域列表。
+ * 同步当前活动奇域列表。
  * 接口按 first_online_time 降序返回，翻页直到追上上次已知的最新时间戳或到达列表末尾。
  */
-export async function syncActivityStageList(eventId: string, region: string) {
+export async function syncActivityStageList() {
 	const db = Global.getEnv().DB;
-	const activityName = `${eventId}:${region}`;
+	const activityName = `${ACTIVITY_EVENT_ID}:${ACTIVITY_REGION}`;
 
 	const existingRow = await db
 		.prepare('SELECT data FROM activity_stage_list WHERE activity_name = ?')
@@ -40,10 +43,10 @@ export async function syncActivityStageList(eventId: string, region: string) {
 	let fetchedCount = 0;
 
 	while (!caughtUp) {
-		const url = new URL(`https://hk4e-api.mihoyo.com/event/${eventId}/contest_level_list`);
+		const url = new URL(`https://hk4e-api.mihoyo.com/event/${ACTIVITY_EVENT_ID}/contest_level_list`);
 		url.searchParams.set('game_biz', 'hk4e_cn');
 		url.searchParams.set('lang', 'zh-cn');
-		url.searchParams.set('region', region);
+		url.searchParams.set('region', ACTIVITY_REGION);
 		url.searchParams.set('cursor', cursor);
 		url.searchParams.set('sort', '0');
 
@@ -89,7 +92,6 @@ export async function syncActivityStageList(eventId: string, region: string) {
 		)
 		.bind(activityName, JSON.stringify(newData))
 		.run();
-
 
 	logger.debug(`Synced activity ${activityName}: fetched ${fetchedCount}, total ${mergedItems.length} stages`);
 }
