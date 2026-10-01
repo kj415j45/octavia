@@ -1,5 +1,12 @@
 [
   {
+    "title": "绮星盛会",
+    "match": {
+      "list": "e20261001ugc-ali0ea:cn_gf01"
+    },
+    "link": "https://act.mihoyo.com/ys/event/e20261001ugc-ali0ea/index.html"
+  },
+  {
     "title": "千星之约",
     "match": {
       "list": "e20260923contribution:cn_gf01"
