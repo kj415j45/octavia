@@ -246,7 +246,7 @@
             }
 
             // Load region map first
-            await getRegionMap();
+            await Promise.all([getRegionMap(), loadActivities()]);
 
             // Group stages by region for better organization
             for (const stageInfo of stages) {

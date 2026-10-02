@@ -144,8 +144,7 @@
         }
 
         async function initPage() {
-            await getRegionMap();
-            await loadActivities();
+            await Promise.all([getRegionMap(), loadActivities()]);
 
             // Check URL params after initialization
             const query = new URLSearchParams(window.location.search);
