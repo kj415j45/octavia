@@ -9,6 +9,12 @@ import { runScheduled } from './scheduled';
 import { Global } from './global';
 import { taggedLogger } from './logger';
 
+declare global {
+	interface Env {
+		STAGE_SEARCH_RATE_LIMIT_MESSAGE?: string;
+	}
+}
+
 const logger = taggedLogger('Main');
 
 export default {
@@ -44,6 +50,14 @@ export default {
 						}
 					}
 					case 'search/stage': {
+						const { success } = await env.STAGE_SEARCH_RATE_LIMITER.limit({
+							key: 'global',
+						});
+						if (!success) {
+							const error =
+								env.STAGE_SEARCH_RATE_LIMIT_MESSAGE?.trim() || 'Rate limit exceeded';
+							return JSONResponse({ error }, { status: 429 });
+						}
 						const keyword = url.searchParams.get('q') || '';
 						if (!keyword.trim()) {
 							return JSONResponse({ error: 'Search keyword is required' }, { status: 400 });

@@ -124,6 +124,25 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Global rate limit exceeded: 3 requests per minute.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Rate limit exceeded"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
           }
         }
       }

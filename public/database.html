@@ -261,7 +261,7 @@
                     }
                 } catch (error) {
                     console.error('Failed to load more results:', error);
-                    setEmptyState('加载失败', '请稍后重试。');
+                    setEmptyState('加载失败', error?.message || '请稍后重试。');
                     emptyState.classList.remove('d-none');
                     setLoading(false);
                     return;
@@ -290,7 +290,10 @@
             } catch (error) {
                 console.error('Failed to search stage database:', error);
                 document.getElementById('results').innerHTML = '';
-                setEmptyState('加载失败', error?.message === 'Search keyword is required' ? '请输入有效关键词后再搜索。' : '请稍后重试。');
+                const message = error?.message === 'Search keyword is required'
+                    ? '请输入有效关键词后再搜索。'
+                    : error?.message || '请稍后重试。';
+                setEmptyState('加载失败', message);
                 emptyState.classList.remove('d-none');
                 pageState.nextBackendPage = false;
                 togglePaginationControls(false);
@@ -357,7 +360,7 @@
                     pageState.lastBackendPage = 1;
                 } catch (error) {
                     console.error('Failed to init search:', error);
-                    setEmptyState('加载失败', '请稍后重试。');
+                    setEmptyState('加载失败', error?.message || '请稍后重试。');
                     emptyState.classList.remove('d-none');
                     setLoading(false);
                     return;
