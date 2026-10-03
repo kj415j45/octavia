@@ -13,12 +13,19 @@ export async function rotateStageCache() {
 	const now = Math.floor(Date.now() / 1000);
 
 	// 取出需要滚动更新的记录（rotate_at <= now，按 rotate_at ASC 取前5）
-	const rows = await db
-		.prepare(
-			'SELECT region, stage_id, expires_at, rotate_at, data FROM stage_cache WHERE rotate_at <= ? ORDER BY rotate_at ASC LIMIT ?',
-		)
-		.bind(now, ROTATE_BATCH_SIZE)
-		.all();
+	// 读取失败时本轮直接放弃，不做任何回写
+	let rows: D1Result<Record<string, unknown>>;
+	try {
+		rows = await db
+			.prepare(
+				'SELECT region, stage_id, expires_at, rotate_at, data FROM stage_cache WHERE rotate_at <= ? ORDER BY rotate_at ASC LIMIT ?',
+			)
+			.bind(now, ROTATE_BATCH_SIZE)
+			.all();
+	} catch (error) {
+		logger.error('Failed to read stage_cache, skip this round:', error);
+		return;
+	}
 
 	if (!rows.results || rows.results.length === 0) {
 		return;
@@ -36,11 +43,13 @@ export async function rotateStageCache() {
 			let errorMsg = '';
 			let endTime;
 
+			let pendingWrite: { result: any; uid: string | null; name: string | null; intro: string | null; description: string | null; expiresAt: number; nextRotateAt: number } | null = null;
+
 			try {
 				const result = await octavia.getStageInfo(region as Regions, stageId);
 				endTime = Date.now();
 
-				// 查询成功：更新缓存数据和 rotate_at
+				// 查询成功：准备更新缓存数据和 rotate_at
 				const newNow = Math.floor(Date.now() / 1000);
 				const expiresAt = newNow + Global.CACHE_TTL;
 				const nextRotateAt = Math.floor(newNow + Global.ROTATE_INTERVAL);
@@ -70,27 +79,7 @@ export async function rotateStageCache() {
 				const intro = result?.level?.meta?.intro || null;
 				const description = result?.level?.meta?.description || null;
 
-				await db
-					.prepare(
-						'UPDATE stage_cache SET uid = ?, name = ?, intro = ?, description = ?, deleted = 0, data = ?, expires_at = ?, rotate_at = ? WHERE region = ? AND stage_id = ?',
-					)
-					.bind(uid, name, intro, description, JSON.stringify(result), expiresAt, nextRotateAt, region, stageId)
-					.run();
-
-				// 更新作者信息表
-				if (uid && result?.author) {
-					const author = result.author;
-					const platformInfo = uid.startsWith('m') ? author.mys : author.hyl;
-					const avatar = platformInfo?.avatar || author.game?.avatar || octavia.getDefaultAvatar();
-					const authorName = platformInfo?.name || null;
-					const ingameName = author.game?.name || null;
-					const pendant = uid.startsWith('h') ? author.hyl?.pendant : null;
-
-					await db
-						.prepare('INSERT OR REPLACE INTO author (uid, avatar, name, ingame_name, pendant) VALUES (?, ?, ?, ?, ?)')
-						.bind(uid, avatar, authorName, ingameName, pendant)
-						.run();
-				}
+				pendingWrite = { result, uid, name, intro, description, expiresAt, nextRotateAt };
 			} catch (error: any) {
 				success = false;
 				errorMsg = error.message || 'Unknown error';
@@ -104,10 +93,44 @@ export async function rotateStageCache() {
 				const nextRotateAt = Math.floor(newNow + backoff);
 
 				const isNotFound = error instanceof StageNotFoundError;
-				await db
-					.prepare('UPDATE stage_cache SET deleted = ?, rotate_at = ? WHERE region = ? AND stage_id = ?')
-					.bind(isNotFound ? 1 : 0, nextRotateAt, region, stageId)
-					.run();
+				try {
+					await db
+						.prepare('UPDATE stage_cache SET deleted = ?, rotate_at = ? WHERE region = ? AND stage_id = ?')
+						.bind(isNotFound ? 1 : 0, nextRotateAt, region, stageId)
+						.run();
+				} catch (dbError) {
+					logger.error(`Failed to write backoff for stage ${stageId} in ${region}:`, dbError);
+				}
+			}
+
+			// D1 写入失败（如配额耗尽）不视为上游失败，也不再追加退避写入
+			if (pendingWrite) {
+				const { result, uid, name, intro, description, expiresAt, nextRotateAt } = pendingWrite;
+				try {
+					await db
+						.prepare(
+							'UPDATE stage_cache SET uid = ?, name = ?, intro = ?, description = ?, deleted = 0, data = ?, expires_at = ?, rotate_at = ? WHERE region = ? AND stage_id = ?',
+						)
+						.bind(uid, name, intro, description, JSON.stringify(result), expiresAt, nextRotateAt, region, stageId)
+						.run();
+
+					// 更新作者信息表
+					if (uid && result?.author) {
+						const author = result.author;
+						const platformInfo = uid.startsWith('m') ? author.mys : author.hyl;
+						const avatar = platformInfo?.avatar || author.game?.avatar || octavia.getDefaultAvatar();
+						const authorName = platformInfo?.name || null;
+						const ingameName = author.game?.name || null;
+						const pendant = uid.startsWith('h') ? author.hyl?.pendant : null;
+
+						await db
+							.prepare('INSERT OR REPLACE INTO author (uid, avatar, name, ingame_name, pendant) VALUES (?, ?, ?, ?, ?)')
+							.bind(uid, avatar, authorName, ingameName, pendant)
+							.run();
+					}
+				} catch (dbError) {
+					logger.error(`Failed to write cache for stage ${stageId} in ${region}:`, dbError);
+				}
 			}
 
 			const duration = (endTime || Date.now()) - startTime;

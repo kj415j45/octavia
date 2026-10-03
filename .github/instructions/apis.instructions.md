@@ -49,6 +49,7 @@ if (!validRegions.includes(region as Regions)) {
 
 - **先读缓存**：若 `expires_at > now`，直接返回并标记 `status.cache = true`。
 - **后写缓存**：上游请求成功后，`INSERT OR REPLACE` 写入 D1，**缓存写入失败不影响返回结果**（catch 后只记录日志）。
+- **缓存保护**：若读取 `stage_cache` 的 D1 查询失败（如读配额耗尽），本次流程仍可返回上游数据，但**禁止回写** `stage_cache` / `author`，避免以空的旧记录覆盖 `created_at` 与版本历史；此时返回的 `status.cache` 为 `null`，表示缓存损坏。
 - `uid` 格式：米游社来源前缀为 `m`（`m<aid>`），HoYoLab 来源前缀为 `h`（`h<aid>`）。
 
 ## maintain.ts 安全要求

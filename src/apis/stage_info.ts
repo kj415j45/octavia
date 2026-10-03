@@ -5,7 +5,7 @@ import { taggedLogger } from '../logger';
 const logger = taggedLogger('api:stage_info');
 
 type RequestStatus = {
-	cache: boolean; // 是否使用了缓存
+	cache: boolean | null; // 是否使用了缓存，null表示缓存损坏（读取失败，本次不回写）
 	upstream: boolean | null; // 上游是否可用，null表示未知（仅当cache为false时有效）
 	removed: boolean | null; // 是否已被下架（upstream为true时表示上游确认删除，upstream为null时表示缓存记录已删除但上游未响应）
 };
@@ -151,12 +151,20 @@ export async function getStageInfo(region: string, stageId: string) {
 
 	// 尝试从缓存获取
 	let cached: any;
+	// 缓存读取失败时无法得知已有记录（created_at、版本历史等），本次流程禁止回写，避免覆盖已有数据
+	let cacheReadFailed = false;
 	try {
 		const db = Global.getEnv().DB;
-		cached = await db
-			.prepare('SELECT data, created_at, expires_at, deleted FROM stage_cache WHERE region = ? AND stage_id = ?')
-			.bind(region, normalizedStageId)
-			.first();
+		try {
+			cached = await db
+				.prepare('SELECT data, created_at, expires_at, deleted FROM stage_cache WHERE region = ? AND stage_id = ?')
+				.bind(region, normalizedStageId)
+				.first();
+		} catch (error) {
+			cacheReadFailed = true;
+			status.cache = null;
+			throw error;
+		}
 
 		if (cached) {
 			const now = Math.floor(Date.now() / 1000);
@@ -224,6 +232,12 @@ export async function getStageInfo(region: string, stageId: string) {
 		} else if (result.author.hyl?.aid) {
 			uid = `h${result.author.hyl.aid}`;
 		}
+	}
+
+	if (cacheReadFailed) {
+		logger.warn(`Skip cache write for stage ${normalizedStageId} in region ${region} due to cache read failure.`);
+		Object.assign(result, { status });
+		return result;
 	}
 
 	// 将结果写入缓存

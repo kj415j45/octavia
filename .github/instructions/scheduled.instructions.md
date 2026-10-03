@@ -35,6 +35,7 @@ applyTo: "{src/scheduled.ts,src/schedule/**}"
 - **成功**：更新 `data`、`expires_at`、`rotate_at`（`now + ROTATE_INTERVAL`），同步更新 `author` 表。
 - **失败（StageNotFoundError）**：标记 `deleted = 1`，退避后设置下次 `rotate_at`。
 - **其他失败**：`deleted` 保持不变（0），退避后设置下次 `rotate_at`。
+- **缓存保护**：批量读取 `stage_cache` 失败时本轮直接返回，不做任何回写；上游成功但 D1 写入失败（如配额耗尽）时只记录日志，不视为上游失败，也不再追加退避写入。
 
 ## 退避策略
 
