@@ -5,12 +5,12 @@ import { taggedLogger } from './logger';
 const log = taggedLogger('scheduled');
 
 export async function runScheduled(cron?: string) {
-	if (cron === '*/35 * * * *') {
+	if (cron?.trim() === '*/35 * * * *') {
 		await syncActivityStageList();
 		return;
 	}
 
-	if (cron === '* * * * *') {
+	if (cron?.trim() === '* * * * *') {
 		await rotateStageCache();
 	}
 
