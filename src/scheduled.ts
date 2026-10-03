@@ -6,12 +6,11 @@ const log = taggedLogger('scheduled');
 
 export async function runScheduled(cron?: string) {
 	if (cron?.trim() === '*/35 * * * *') {
-		await syncActivityStageList();
-		return;
+		return await syncActivityStageList();
 	}
 
 	if (cron?.trim() === '* * * * *') {
-		await rotateStageCache();
+		return await rotateStageCache();
 	}
 
 	log.warn(`Unknown cron expression: ${cron}`);
