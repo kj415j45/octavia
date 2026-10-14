@@ -15,3 +15,8 @@ body {
 .badge {
     font-family: var(--bs-body-font-family);
 }
+
+.bg-accent {
+    --bs-bg-opacity: 1;
+    background-color: rgba(119, 64, 255, var(--bs-bg-opacity)) !important;
+}

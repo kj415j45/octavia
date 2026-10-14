@@ -45,6 +45,6 @@ applyTo: "public/**"
 ## 添加新页面步骤
 
 1. 在 `public/` 新建 `page-name.html`。
-2. 引入 `/lib/bootstrap.min.css`、`/lib/font.css`（字体）。
+2. 引入 `/lib/bootstrap.min.css`、`/lib/common.css`（字体与公共样式）。
 3. 引入 `/lib/bootstrap.bundle.min.js`、`/lib/common.js`。
 4. 在导航栏中加入链接入口（在相关页面的 HTML 中更新导航）。

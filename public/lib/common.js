@@ -127,6 +127,7 @@ window.OctaviaStorage = {
 
 const SETTINGS_KEYS = {
     DATA_SAVER_MODE: 'dataSaverMode',
+    AWARD_INFO: 'awardInfo',
 };
 
 function isDataSaverModeEnabled() {
@@ -137,10 +138,20 @@ function setDataSaverModeEnabled(enabled) {
     return window.OctaviaStorage.settings.set(SETTINGS_KEYS.DATA_SAVER_MODE, Boolean(enabled));
 }
 
+function isAwardInfoEnabled() {
+    return window.OctaviaStorage.settings.get(SETTINGS_KEYS.AWARD_INFO, false) === true;
+}
+
+function setAwardInfoEnabled(enabled) {
+    return window.OctaviaStorage.settings.set(SETTINGS_KEYS.AWARD_INFO, Boolean(enabled));
+}
+
 window.OctaviaSettings = {
     keys: SETTINGS_KEYS,
     isDataSaverModeEnabled,
     setDataSaverModeEnabled,
+    isAwardInfoEnabled,
+    setAwardInfoEnabled,
 };
 
 // Stage cache
@@ -238,7 +249,7 @@ async function loadActivities() {
     const response = await fetch(`${baseUrl}/data/activities.json`);
     activities = await response.json();
 
-    await Promise.all(activities.map(async (activity) => {
+    const activityLoads = activities.map(async (activity) => {
         if (!activity.match.list) {
             return;
         }
@@ -253,7 +264,40 @@ async function loadActivities() {
             console.warn(`Failed to load activity list ${activity.match.list}:`, error);
             activity.stageIds = new Set();
         }
-    }));
+    });
+    const awardLoads = activities.filter(activity => isAwardInfoEnabled() && activity.award).map(async (activity) => {
+        const data = await loadAwardData(activity.title);
+        if (data) {
+            activity.awardGroups = new Map();
+            data.groups.forEach(group => {
+                group.items.forEach(item => {
+                    const key = `${item.region}:${item.guid}`;
+                    if (!activity.awardGroups.has(key)) {
+                        activity.awardGroups.set(key, new Set());
+                    }
+                    activity.awardGroups.get(key).add(group.name);
+                });
+            });
+        }
+    });
+    await Promise.all([...activityLoads, ...awardLoads]);
+}
+
+async function loadAwardData(title) {
+    try {
+        const response = await fetch(`${baseUrl}/data/awards/${encodeURIComponent(title)}.json`);
+        if (!response.ok) {
+            throw new Error(`Award request failed: ${response.status}`);
+        }
+        const data = await response.json();
+        if (!Array.isArray(data.groups) || data.groups.some(group => !Array.isArray(group.items))) {
+            throw new Error('Invalid award data');
+        }
+        return data;
+    } catch (error) {
+        console.error(`Failed to load award data for ${title}:`, error);
+        return null;
+    }
 }
 
 // API utilities
@@ -611,8 +655,21 @@ function extractSpecialTag(stage, activities) {
         const matchesDescription = activity.match.description
             && meta.description.includes(activity.match.description);
         const matchesList = activity.stageIds?.has(stageId);
-        if (matchesDescription || matchesList) {
-            specialTags.push(activity.title);
+        const awardGroups = activity.awardGroups?.get(`${stage.level.region}:${stageId}`);
+        if (awardGroups?.size) {
+            awardGroups.forEach(groupName => {
+                specialTags.push({
+                    title: activity.title,
+                    label: `${activity.title}·${groupName}`,
+                    awarded: true,
+                });
+            });
+        } else if (matchesDescription || matchesList) {
+            specialTags.push({
+                title: activity.title,
+                label: `${activity.title}`,
+                awarded: false,
+            });
         }
     });
     return specialTags;
@@ -922,11 +979,12 @@ function makeStageCard(stage, options = {}) {
     const specialTags = extractSpecialTag(stage, activities);
     specialTags.forEach(tag => {
         const specialTag = document.createElement('a');
-        specialTag.className = 'badge bg-danger me-1';
-        specialTag.href = `/award/${encodeURIComponent(tag)}`;
+        specialTag.className = `badge ${tag.awarded ? 'bg-danger' : 'bg-accent'} me-1`;
+        specialTag.href = `/award/${encodeURIComponent(tag.title)}`;
         specialTag.target = '_blank';
+        specialTag.rel = 'noopener';
         specialTag.style.textDecoration = 'none';
-        specialTag.textContent = tag;
+        specialTag.textContent = tag.label;
         leftTags.appendChild(specialTag);
     });
 

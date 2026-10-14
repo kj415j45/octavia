@@ -11,7 +11,7 @@
     <link rel="icon" href="/favicon.ico" />
 
     <link rel="stylesheet" href="/lib/bootstrap.min.css" />
-    <link rel="stylesheet" href="/lib/font.css" />
+    <link rel="stylesheet" href="/lib/common.css" />
     <style>
         /* auto-fit lets a group with fewer cards than a full row stretch to use all available
            width, while the minmax lower bound (>= 1/5 of the row) caps it at 5 columns per row */
@@ -132,18 +132,6 @@
         function getRequestedTitleFromPath() {
             const match = window.location.pathname.match(/\/award\/([^\/]+)/);
             return match ? decodeURIComponent(match[1]) : null;
-        }
-
-        async function loadAwardData(title) {
-            try {
-                const response = await fetch(`/data/awards/${encodeURIComponent(title)}.json`);
-                if (response.ok) {
-                    return await response.json();
-                }
-            } catch (error) {
-                console.error(`Failed to load award data for ${title}:`, error);
-            }
-            return null;
         }
 
         function isAwardDataValid(data) {

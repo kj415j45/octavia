@@ -15,6 +15,7 @@
   },
   {
     "title": "创造星领域",
+    "award": true,
     "match": {
       "description": "#创造星领域"
     },

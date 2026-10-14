@@ -11,7 +11,7 @@
     <link rel="icon" href="/favicon.ico" />
 
     <link rel="stylesheet" href="/lib/bootstrap.min.css" />
-    <link rel="stylesheet" href="/lib/font.css" />
+    <link rel="stylesheet" href="/lib/common.css" />
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -43,7 +43,12 @@
                     <input class="form-check-input" type="checkbox" role="switch" id="dataSaverSwitch" />
                     <label class="form-check-label" for="dataSaverSwitch">省流模式</label>
                 </div>
-                <p class="text-muted small mb-0">开启后，奇域卡片将不再加载封面图片。</p>
+                <p class="text-muted small mb-3">开启后，奇域卡片将不再加载封面图片。</p>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="awardInfoSwitch" />
+                    <label class="form-check-label" for="awardInfoSwitch">加载获奖信息</label>
+                </div>
+                <p class="text-muted small mb-0">开启后，加载活动信息时会额外读取已收录的获奖名单。</p>
             </div>
             <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <span id="saveState" class="text-muted small">未修改</span>
@@ -100,13 +105,16 @@
     <script src="/lib/common.js"></script>
     <script>
         const dataSaverSwitch = document.getElementById('dataSaverSwitch');
+        const awardInfoSwitch = document.getElementById('awardInfoSwitch');
         const saveState = document.getElementById('saveState');
         const resetButton = document.getElementById('resetButton');
 
         function renderState() {
             const enabled = window.OctaviaSettings.isDataSaverModeEnabled();
             dataSaverSwitch.checked = enabled;
-            saveState.textContent = `当前状态：${enabled ? '省流模式已开启' : '省流模式已关闭'}`;
+            const awardEnabled = window.OctaviaSettings.isAwardInfoEnabled();
+            awardInfoSwitch.checked = awardEnabled;
+            saveState.textContent = `当前状态：省流模式${enabled ? '已开启' : '已关闭'}，获奖信息${awardEnabled ? '已开启' : '已关闭'}`;
         }
 
         function saveDataSaverState(enabled) {
@@ -118,8 +126,15 @@
             saveDataSaverState(event.target.checked);
         });
 
+        awardInfoSwitch.addEventListener('change', (event) => {
+            const enabled = event.target.checked;
+            window.OctaviaSettings.setAwardInfoEnabled(enabled);
+            saveState.textContent = `已保存：获奖信息${enabled ? '已开启' : '已关闭'}，刷新查询页面后生效`;
+        });
+
         resetButton.addEventListener('click', () => {
             saveDataSaverState(false);
+            window.OctaviaSettings.setAwardInfoEnabled(false);
             renderState();
         });
 
