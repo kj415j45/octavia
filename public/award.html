@@ -138,6 +138,10 @@
             return !!data && Array.isArray(data.groups) && data.groups.length > 0;
         }
 
+        function sortGroupsById(groups) {
+            return [...groups].sort((a, b) => a.id - b.id);
+        }
+
         function getActivityLink(title) {
             return activities.find((activity) => activity.title === title)?.link || null;
         }
@@ -245,7 +249,7 @@
         // Renders the lightweight, no-API-call preview shown when landing on /award/{title} directly
         function renderPreviewTable(groups) {
             previewTableBodyEl.innerHTML = '';
-            groups.forEach((group) => {
+            sortGroupsById(groups).forEach((group) => {
                 const tr = document.createElement('tr');
                 const nameTd = document.createElement('td');
                 nameTd.textContent = group.name;
@@ -403,10 +407,11 @@
 
         async function renderGroups(groups, token) {
             let anyRendered = false;
+            const sortedGroups = sortGroupsById(groups);
 
-            for (let i = 0; i < groups.length; i += 1) {
+            for (let i = 0; i < sortedGroups.length; i += 1) {
                 if (token !== awardRequestToken) return;
-                const groupRendered = await renderGroup(groups[i], i, token);
+                const groupRendered = await renderGroup(sortedGroups[i], i, token);
                 anyRendered = anyRendered || groupRendered;
             }
 
