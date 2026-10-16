@@ -127,6 +127,7 @@ window.OctaviaStorage = {
 
 const SETTINGS_KEYS = {
     DATA_SAVER_MODE: 'dataSaverMode',
+    STAGE_MARKERS: 'stageMarkers',
     AWARD_INFO: 'awardInfo',
 };
 
@@ -136,6 +137,14 @@ function isDataSaverModeEnabled() {
 
 function setDataSaverModeEnabled(enabled) {
     return window.OctaviaStorage.settings.set(SETTINGS_KEYS.DATA_SAVER_MODE, Boolean(enabled));
+}
+
+function isStageMarkersEnabled() {
+    return window.OctaviaStorage.settings.get(SETTINGS_KEYS.STAGE_MARKERS, true) === true;
+}
+
+function setStageMarkersEnabled(enabled) {
+    return window.OctaviaStorage.settings.set(SETTINGS_KEYS.STAGE_MARKERS, Boolean(enabled));
 }
 
 function isAwardInfoEnabled() {
@@ -150,6 +159,8 @@ window.OctaviaSettings = {
     keys: SETTINGS_KEYS,
     isDataSaverModeEnabled,
     setDataSaverModeEnabled,
+    isStageMarkersEnabled,
+    setStageMarkersEnabled,
     isAwardInfoEnabled,
     setAwardInfoEnabled,
 };
@@ -248,6 +259,10 @@ async function populateRegionDropdown(currentRegion = 'cn_gf01') {
 async function loadActivities() {
     const response = await fetch(`${baseUrl}/data/activities.json`);
     activities = await response.json();
+
+    if (!isStageMarkersEnabled()) {
+        return;
+    }
 
     const activityLoads = activities.map(async (activity) => {
         if (!activity.match.list) {
@@ -648,6 +663,10 @@ function showChangelogModal(versionInfo) {
 }
 
 function extractSpecialTag(stage, activities) {
+    if (!isStageMarkersEnabled()) {
+        return [];
+    }
+
     const meta = stage.level.meta;
     const stageId = String(stage.level.id);
     const specialTags = [];
@@ -655,7 +674,9 @@ function extractSpecialTag(stage, activities) {
         const matchesDescription = activity.match.description
             && meta.description.includes(activity.match.description);
         const matchesList = activity.stageIds?.has(stageId);
-        const awardGroups = activity.awardGroups?.get(`${stage.level.region}:${stageId}`);
+        const awardGroups = isAwardInfoEnabled()
+            ? activity.awardGroups?.get(`${stage.level.region}:${stageId}`)
+            : null;
         if (awardGroups?.size) {
             awardGroups.forEach(groupName => {
                 specialTags.push({

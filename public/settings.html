@@ -45,10 +45,15 @@
                 </div>
                 <p class="text-muted small mb-3">开启后，奇域卡片将不再加载封面图片。</p>
                 <div class="form-check form-switch mb-2">
-                    <input class="form-check-input" type="checkbox" role="switch" id="awardInfoSwitch" />
-                    <label class="form-check-label" for="awardInfoSwitch">加载获奖信息</label>
+                    <input class="form-check-input" type="checkbox" role="switch" id="stageMarkersSwitch" />
+                    <label class="form-check-label" for="stageMarkersSwitch">奇域标记</label>
                 </div>
-                <p class="text-muted small mb-0">开启后，加载活动信息时会额外读取已收录的获奖名单。</p>
+                <p class="text-muted small mb-3">默认开启。在奇域卡片和导出图片中显示参与活动标记；关闭后，不再加载活动信息。</p>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="awardInfoSwitch" aria-describedby="awardInfoHint" />
+                    <label class="form-check-label" for="awardInfoSwitch">获奖标记</label>
+                </div>
+                <p id="awardInfoHint" class="text-muted small mb-0">默认关闭。开启后，加载活动信息时会额外读取已收录的获奖名单。</p>
             </div>
             <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <span id="saveState" class="text-muted small">未修改</span>
@@ -97,7 +102,7 @@
     </main>
 
     <footer class="mt-auto">
-        <p class="text-center mb-1"><a href="/settings.html">设置</a> · <a href="https://github.com/kj415j45/octavia">GitHub</a></p>
+        <p class="text-center mb-1"><a href="https://github.com/kj415j45/octavia">GitHub</a></p>
         <p class="text-center text-muted small">Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></p>
     </footer>
 
@@ -105,6 +110,7 @@
     <script src="/lib/common.js"></script>
     <script>
         const dataSaverSwitch = document.getElementById('dataSaverSwitch');
+        const stageMarkersSwitch = document.getElementById('stageMarkersSwitch');
         const awardInfoSwitch = document.getElementById('awardInfoSwitch');
         const saveState = document.getElementById('saveState');
         const resetButton = document.getElementById('resetButton');
@@ -112,9 +118,12 @@
         function renderState() {
             const enabled = window.OctaviaSettings.isDataSaverModeEnabled();
             dataSaverSwitch.checked = enabled;
+            const markersEnabled = window.OctaviaSettings.isStageMarkersEnabled();
+            stageMarkersSwitch.checked = markersEnabled;
             const awardEnabled = window.OctaviaSettings.isAwardInfoEnabled();
             awardInfoSwitch.checked = awardEnabled;
-            saveState.textContent = `当前状态：省流模式${enabled ? '已开启' : '已关闭'}，获奖信息${awardEnabled ? '已开启' : '已关闭'}`;
+            awardInfoSwitch.disabled = !markersEnabled;
+            saveState.textContent = `当前状态：省流模式${enabled ? '已开启' : '已关闭'}，奇域标记${markersEnabled ? '已开启' : '已关闭'}，获奖标记${!markersEnabled ? '未生效' : awardEnabled ? '已开启' : '已关闭'}`;
         }
 
         function saveDataSaverState(enabled) {
@@ -126,14 +135,22 @@
             saveDataSaverState(event.target.checked);
         });
 
+        stageMarkersSwitch.addEventListener('change', (event) => {
+            const enabled = event.target.checked;
+            window.OctaviaSettings.setStageMarkersEnabled(enabled);
+            renderState();
+            saveState.textContent = `已保存：奇域标记${enabled ? '已开启' : '已关闭'}，刷新查询页面后生效`;
+        });
+
         awardInfoSwitch.addEventListener('change', (event) => {
             const enabled = event.target.checked;
             window.OctaviaSettings.setAwardInfoEnabled(enabled);
-            saveState.textContent = `已保存：获奖信息${enabled ? '已开启' : '已关闭'}，刷新查询页面后生效`;
+            saveState.textContent = `已保存：获奖标记${enabled ? '已开启' : '已关闭'}，刷新查询页面后生效`;
         });
 
         resetButton.addEventListener('click', () => {
             saveDataSaverState(false);
+            window.OctaviaSettings.setStageMarkersEnabled(true);
             window.OctaviaSettings.setAwardInfoEnabled(false);
             renderState();
         });
