@@ -1,0 +1,703 @@
+{
+  "title": "千星创作赛",
+  "groups": [
+    {
+      "id": 1,
+      "name": "璀璨奇匠奖",
+      "items": [
+        {
+          "region": "cn_gf01",
+          "guid": "28498621183"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "58591492407"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37080227231"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "闪耀奇匠奖",
+      "items": [
+        {
+          "region": "cn_gf01",
+          "guid": "114390101152"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37082355909"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37167769606"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "星辉奇匠奖",
+      "items": [
+        {
+          "region": "cn_gf01",
+          "guid": "41384319276"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "33027477031"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45670356376"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "80081125304"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32883988844"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32862117781"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "58719981001"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "71517266563"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28490362085"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "54386824940"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24442627002"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24350044994"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28729318030"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "92914928952"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "105828342270"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32843512641"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24203565611"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "101591978107"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24394585730"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "50015666946"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "4319311666556"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37230458659"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "67308557378"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28573124062"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37194884640"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "绘梦视觉奖",
+      "items": [
+        {
+          "region": "cn_gf01",
+          "guid": "54260844846"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "54342021071"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "33032182836"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41393944405"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "93049433603"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "新锐之星奖",
+      "items": [
+        {
+          "region": "cn_gf01",
+          "guid": "33027995346"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28734672278"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24321923161"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "流光创作奖",
+      "items": [
+        {
+          "region": "cn_gf01",
+          "guid": "92921526208"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41481294390"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "67260293340"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28576412945"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41474036275"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28647728668"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41389205168"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28728223799"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "33032598374"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41396152472"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "54276420614"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41391839310"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28491148607"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37311523568"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "58772406515"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32966802289"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "62852594169"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32863938065"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "58565546674"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45678497134"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "71683107362"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32797493001"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "50070086043"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32915707859"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45681452028"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45852938094"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "58658748193"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45758255265"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41514312198"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "58695774873"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "千星启航奖",
+      "items": [
+        {
+          "region": "cn_gf01",
+          "guid": "45912615684"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "49992951660"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "54334786834"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "54375295294"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37326782499"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37323796509"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28539275088"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37274697712"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32872195123"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37182421098"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "88810730347"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "50053215356"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45670763596"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41476296270"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "75744406922"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "63093202229"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37267651563"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "80103724070"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "136104683121"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "84364825315"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28584141158"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37322342945"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32909939452"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28728760531"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32894396858"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37325113446"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32793755133"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "71580376293"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "71574297020"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45671251215"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41519584082"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32891834441"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45732913215"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37180626006"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "54502303099"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32849351639"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24443761514"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32890489611"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "58692606039"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28736445660"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "88629558580"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24435085464"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28693553144"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45851058877"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "80088684240"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24379036486"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "71580833415"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45775151738"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41375353285"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "67387594086"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32859556364"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "50124933661"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "80170498437"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "71683224251"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "54260316548"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "58556140867"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28733012649"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "67351721016"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37097093266"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "50056805971"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32785641585"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37325177453"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "54266645772"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "127510129487"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "50079678514"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41376767763"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37091020391"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45852486707"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "93108166423"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "80029754170"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28677567127"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "58668679100"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32993735441"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "118754672643"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32784964555"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41392380177"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24298483683"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "32906350906"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "136104049686"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28547777579"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "105943521529"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24297410102"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "45873689558"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "50061593913"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24195494847"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "33026482787"
+        },
+        {
+          "region": "cn_qd01",
+          "guid": "28890356085"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "62925063817"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41486924874"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "33029650320"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28732514925"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "37177770217"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "28737819605"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "41609749939"
+        },
+        {
+          "region": "cn_gf01",
+          "guid": "24401331620"
+        }
+      ]
+    }
+  ]
+}
