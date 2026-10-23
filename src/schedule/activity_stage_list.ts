@@ -1,9 +1,10 @@
 import { Global } from '../global';
 import { taggedLogger } from '../logger';
+import { Regions } from '../octavia';
 
 // 当前唯一活动，后续活动变化时需手动更新
 const ACTIVITY_EVENT_ID = 'e20260923contribution';
-const ACTIVITY_REGION = 'cn_gf01';
+const ACTIVITY_REGION = Regions.CN_GF;
 const defaultUA = 'Octavia/1.0.0 (kj415j45/octavia)';
 const logger = taggedLogger('scheduled:activity_stage_list');
 
@@ -44,7 +45,7 @@ export async function syncActivityStageList() {
 
 	while (!caughtUp) {
 		const url = new URL(`https://hk4e-api.mihoyo.com/event/${ACTIVITY_EVENT_ID}/contest_level_list`);
-		url.searchParams.set('game_biz', 'hk4e_cn');
+		// url.searchParams.set('game_biz', 'hk4e_cn');
 		url.searchParams.set('lang', 'zh-cn');
 		url.searchParams.set('region', ACTIVITY_REGION);
 		url.searchParams.set('cursor', cursor);
