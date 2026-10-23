@@ -288,9 +288,9 @@ async function loadActivities() {
                 group.items.forEach(item => {
                     const key = `${item.region}:${item.guid}`;
                     if (!activity.awardGroups.has(key)) {
-                        activity.awardGroups.set(key, new Set());
+                        activity.awardGroups.set(key, new Map());
                     }
-                    activity.awardGroups.get(key).add(group.name);
+                    activity.awardGroups.get(key).set(group.name, item.note);
                 });
             });
         }
@@ -317,7 +317,8 @@ async function loadAwardData(title) {
 
 // API utilities
 async function getStageInfo(region, id) {
-    const cacheKey = `${region}:${id}`;
+    const normalizedRegion = region || '';
+    const cacheKey = `${normalizedRegion}:${id}`;
     const cached = _stageCacheStore.get(cacheKey);
     const now = Date.now();
 
@@ -328,7 +329,11 @@ async function getStageInfo(region, id) {
 
     // Cache expired or missing — call backend
     try {
-        const response = await fetch(`${baseUrl}/api/stage?region=${region}&id=${id}`);
+        const params = new URLSearchParams({ id });
+        if (normalizedRegion) {
+            params.set('region', normalizedRegion);
+        }
+        const response = await fetch(`${baseUrl}/api/stage?${params.toString()}`);
         if (!response.ok) {
             const error = new Error(`Stage request failed: ${response.status}`);
             error.httpStatus = response.status;
@@ -678,11 +683,12 @@ function extractSpecialTag(stage, activities) {
             ? activity.awardGroups?.get(`${stage.level.region}:${stageId}`)
             : null;
         if (awardGroups?.size) {
-            awardGroups.forEach(groupName => {
+            awardGroups.forEach((note, groupName) => {
                 specialTags.push({
                     title: activity.title,
                     label: `${activity.title}·${groupName}`,
                     awarded: true,
+                    note,
                 });
             });
         } else if (matchesDescription || matchesList) {
@@ -1006,6 +1012,12 @@ function makeStageCard(stage, options = {}) {
         specialTag.rel = 'noopener';
         specialTag.style.textDecoration = 'none';
         specialTag.textContent = tag.label;
+        if (tag.note != null && tag.note !== '') {
+            specialTag.title = String(tag.note);
+            specialTag.setAttribute('data-bs-toggle', 'tooltip');
+            specialTag.setAttribute('aria-label', `${tag.label}：${tag.note}`);
+            new bootstrap.Tooltip(specialTag, { container: 'body' });
+        }
         leftTags.appendChild(specialTag);
     });
 

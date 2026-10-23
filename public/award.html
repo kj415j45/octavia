@@ -106,6 +106,7 @@
     <script src="/lib/common.js"></script>
     <script>
         const GROUP_VISIBLE_LIMIT = 10;
+        const GROUP_EXPAND_BATCH_SIZE = 30;
         let awardRequestToken = 0;
 
         const selectorSectionEl = document.getElementById('selectorSection');
@@ -177,11 +178,12 @@
 
         async function fetchEntries(items, token) {
             const results = await Promise.all(items.map(async (item) => {
+                const region = item.region || '';
                 try {
-                    const stage = await getStageInfo(item.region, item.guid);
+                    const stage = await getStageInfo(region, item.guid);
                     return { stage, note: item.note };
                 } catch (error) {
-                    console.error(`Failed to load award stage ${item.guid} (${item.region}):`, error);
+                    console.error(`Failed to load award stage ${item.guid} (${region || 'auto'}):`, error);
                     return null;
                 }
             }));
@@ -295,7 +297,7 @@
             await renderGroups(data.groups, token);
         }
 
-        async function renderGroup(group, groupIndex, token) {
+        async function renderGroup(group, token) {
             const items = Array.isArray(group.items) ? group.items : [];
             if (items.length === 0) return false;
 
@@ -351,48 +353,67 @@
             }
 
             if (collapsedItems.length > 0) {
-                const collapseId = `award-group-collapse-${groupIndex}`;
-                const expandLabel = `展开剩余 ${collapsedItems.length} 个`;
-
                 const toggleBtn = document.createElement('button');
                 toggleBtn.type = 'button';
                 toggleBtn.className = 'btn btn-outline-secondary btn-sm mt-3';
-                toggleBtn.textContent = expandLabel;
-                toggleBtn.setAttribute('data-bs-toggle', 'collapse');
-                toggleBtn.setAttribute('data-bs-target', `#${collapseId}`);
+                const expandedContent = document.createElement('div');
+                expandedContent.className = 'mt-3 d-none';
 
-                const collapseWrap = document.createElement('div');
-                collapseWrap.className = 'collapse mt-3';
-                collapseWrap.id = collapseId;
+                let nextItemIndex = 0;
+                let loadingBatch = false;
+                let expandedAny = false;
+                const updateToggleLabel = () => {
+                    const remaining = collapsedItems.length - nextItemIndex;
+                    const nextBatchSize = Math.min(GROUP_EXPAND_BATCH_SIZE, remaining);
+                    toggleBtn.textContent = `展开接下来 ${nextBatchSize} 个（剩余 ${remaining} 个）`;
+                };
+                updateToggleLabel();
 
-                body.appendChild(toggleBtn);
-                body.appendChild(collapseWrap);
+                toggleBtn.addEventListener('click', async () => {
+                    if (loadingBatch || token !== awardRequestToken) return;
+                    loadingBatch = true;
+                    toggleBtn.disabled = true;
+                    expandedContent.classList.remove('d-none');
 
-                let loaded = false;
-                collapseWrap.addEventListener('show.bs.collapse', async () => {
-                    if (loaded) return;
-                    loaded = true;
-                    const collapsedSpinner = createSpinner();
-                    collapseWrap.appendChild(collapsedSpinner);
+                    try {
+                        const batch = collapsedItems.slice(
+                            nextItemIndex,
+                            nextItemIndex + GROUP_EXPAND_BATCH_SIZE,
+                        );
+                        nextItemIndex += batch.length;
+                        const batchSpinner = createSpinner();
+                        expandedContent.appendChild(batchSpinner);
 
-                    const collapsedEntries = (await fetchEntries(collapsedItems, token)).filter(isValidEntry);
-                    if (token !== awardRequestToken) return;
-                    collapsedSpinner.remove();
+                        const batchEntries = (await fetchEntries(batch, token)).filter(isValidEntry);
+                        if (token !== awardRequestToken) return;
+                        batchSpinner.remove();
 
-                    if (collapsedEntries.length) {
-                        rendered = true;
-                        collapseWrap.appendChild(buildStageRow(collapsedEntries));
-                    } else {
-                        const notice = document.createElement('p');
-                        notice.className = 'text-muted mb-0';
-                        notice.textContent = '剩余部分暂无可用数据。';
-                        collapseWrap.appendChild(notice);
+                        if (batchEntries.length) {
+                            rendered = true;
+                            expandedAny = true;
+                            expandedContent.appendChild(buildStageRow(batchEntries));
+                        }
+
+                        if (nextItemIndex >= collapsedItems.length) {
+                            toggleBtn.remove();
+                            if (!expandedAny) {
+                                const notice = document.createElement('p');
+                                notice.className = 'text-muted mb-0';
+                                notice.textContent = '剩余部分暂无可用数据。';
+                                expandedContent.appendChild(notice);
+                            }
+                            return;
+                        }
+
+                        updateToggleLabel();
+                    } finally {
+                        loadingBatch = false;
+                        toggleBtn.disabled = false;
                     }
                 });
-                // Expansion is one-way: once shown, drop the toggle so it can't be collapsed again
-                collapseWrap.addEventListener('shown.bs.collapse', () => {
-                    toggleBtn.remove();
-                });
+
+                body.appendChild(expandedContent);
+                body.appendChild(toggleBtn);
             }
 
             if (!rendered && collapsedItems.length === 0) {
@@ -411,7 +432,7 @@
 
             for (let i = 0; i < sortedGroups.length; i += 1) {
                 if (token !== awardRequestToken) return;
-                const groupRendered = await renderGroup(sortedGroups[i], i, token);
+                const groupRendered = await renderGroup(sortedGroups[i], token);
                 anyRendered = anyRendered || groupRendered;
             }
 
