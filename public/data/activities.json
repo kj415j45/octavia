@@ -1,5 +1,24 @@
 [
   {
+    "title": "千星创作赛·拾光季",
+    "sub": [
+      {
+        "title": "沪上奇旅",
+        "match": {
+          "list": "e20261104contribution:cn_gf01:1002"
+        }
+      },
+      {
+        "title": "织景造境",
+        "match": {
+          "list": "e20261104contribution:cn_gf01:1003"
+        }
+      }
+    ],
+    "match": {},
+    "link": "https://act.mihoyo.com/ys/event/e20261104creator-qpl4xt/index.html"
+  },
+  {
     "title": "绮星盛会",
     "award": true,
     "match": {},

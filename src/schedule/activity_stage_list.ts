@@ -2,9 +2,18 @@ import { Global } from '../global';
 import { taggedLogger } from '../logger';
 import { Regions } from '../octavia';
 
-// 当前唯一活动，后续活动变化时需手动更新
-const ACTIVITY_EVENT_ID = 'e20260923contribution';
-const ACTIVITY_REGION = Regions.CN_GF;
+const ACTIVITY_LIST = [
+	{
+		eventId: 'e20261104contribution',
+		region: Regions.CN_GF,
+		subId: '1002',
+	},
+	{
+		eventId: 'e20261104contribution',
+		region: Regions.CN_GF,
+		subId: '1003',
+	},
+];
 const defaultUA = 'Octavia/1.0.0 (kj415j45/octavia)';
 const logger = taggedLogger('scheduled:activity_stage_list');
 
@@ -22,8 +31,20 @@ interface ActivityStageData {
  * 接口按 first_online_time 降序返回，翻页直到追上上次已知的最新时间戳或到达列表末尾。
  */
 export async function syncActivityStageList() {
+	const results = await Promise.allSettled(
+		ACTIVITY_LIST.map(activity => syncAndWriteActivity(activity.eventId, activity.region, activity.subId)),
+	);
+	results.forEach((result, index) => {
+		if (result.status === 'rejected') {
+			const { eventId, region, subId } = ACTIVITY_LIST[index];
+			logger.error(`Failed to sync activity ${eventId}:${region}:${subId}:`, result.reason);
+		}
+	});
+}
+
+async function syncAndWriteActivity(eventId: string, region: Regions, subId: string) {
 	const db = Global.getEnv().DB;
-	const activityName = `${ACTIVITY_EVENT_ID}:${ACTIVITY_REGION}`;
+	const activityName = `${eventId}:${region}:${subId}`;
 
 	const existingRow = await db
 		.prepare('SELECT data FROM activity_stage_list WHERE activity_name = ?')
@@ -44,10 +65,10 @@ export async function syncActivityStageList() {
 	let fetchedCount = 0;
 
 	while (!caughtUp) {
-		const url = new URL(`https://hk4e-api.mihoyo.com/event/${ACTIVITY_EVENT_ID}/contest_level_list`);
-		// url.searchParams.set('game_biz', 'hk4e_cn');
+		const url = new URL(`https://hk4e-api.mihoyo.com/event/${eventId}/contest_level_list`);
 		url.searchParams.set('lang', 'zh-cn');
-		url.searchParams.set('region', ACTIVITY_REGION);
+		url.searchParams.set('region', region);
+		url.searchParams.set('contest_id', subId);
 		url.searchParams.set('cursor', cursor);
 		url.searchParams.set('sort', '0');
 

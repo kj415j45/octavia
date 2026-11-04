@@ -264,8 +264,8 @@ async function loadActivities() {
         return;
     }
 
-    const activityLoads = activities.map(async (activity) => {
-        if (!activity.match.list) {
+    const activityLoads = activities.flatMap(activity => [activity, ...(activity.sub || [])]).map(async (activity) => {
+        if (!activity.match?.list) {
             return;
         }
 
@@ -675,10 +675,11 @@ function extractSpecialTag(stage, activities) {
     const meta = stage.level.meta;
     const stageId = String(stage.level.id);
     const specialTags = [];
+    const matchesActivity = activity => (
+        (activity.match?.description && meta.description.includes(activity.match.description))
+        || activity.stageIds?.has(stageId)
+    );
     activities.forEach(activity => {
-        const matchesDescription = activity.match.description
-            && meta.description.includes(activity.match.description);
-        const matchesList = activity.stageIds?.has(stageId);
         const awardGroups = isAwardInfoEnabled()
             ? activity.awardGroups?.get(`${stage.level.region}:${stageId}`)
             : null;
@@ -691,12 +692,23 @@ function extractSpecialTag(stage, activities) {
                     note,
                 });
             });
-        } else if (matchesDescription || matchesList) {
-            specialTags.push({
-                title: activity.title,
-                label: `${activity.title}`,
-                awarded: false,
-            });
+        } else {
+            const matchedSubs = (activity.sub || []).filter(matchesActivity);
+            if (matchedSubs.length) {
+                matchedSubs.forEach(sub => {
+                    specialTags.push({
+                        title: activity.title,
+                        label: `${activity.title}·${sub.title}`,
+                        awarded: false,
+                    });
+                });
+            } else if (matchesActivity(activity)) {
+                specialTags.push({
+                    title: activity.title,
+                    label: activity.title,
+                    awarded: false,
+                });
+            }
         }
     });
     return specialTags;
