@@ -213,7 +213,7 @@
         function renderActivityButtons() {
             const container = document.getElementById('activityButtons');
             container.innerHTML = '';
-            activities.forEach((activity) => {
+            activities.filter((activity) => activity.list !== false).forEach((activity) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'btn btn-outline-primary';

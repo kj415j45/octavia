@@ -265,6 +265,8 @@ async function loadActivities() {
     }
 
     const activityLoads = activities.flatMap(activity => [activity, ...(activity.sub || [])]).map(async (activity) => {
+        activity.guidIds = new Set(Array.isArray(activity.match?.guid) ? activity.match.guid.map(String) : []);
+
         if (!activity.match?.list) {
             return;
         }
@@ -677,6 +679,7 @@ function extractSpecialTag(stage, activities) {
     const specialTags = [];
     const matchesActivity = activity => (
         (activity.match?.description && meta.description.includes(activity.match.description))
+        || activity.guidIds?.has(stageId)
         || activity.stageIds?.has(stageId)
     );
     activities.forEach(activity => {
@@ -689,6 +692,7 @@ function extractSpecialTag(stage, activities) {
                     title: activity.title,
                     label: `${activity.title}·${groupName}`,
                     awarded: true,
+                    link: activity.list === false ? activity.link : null,
                     note,
                 });
             });
@@ -700,6 +704,7 @@ function extractSpecialTag(stage, activities) {
                         title: activity.title,
                         label: `${activity.title}·${sub.title}`,
                         awarded: false,
+                        link: activity.list === false ? sub.link || activity.link : null,
                     });
                 });
             } else if (matchesActivity(activity)) {
@@ -707,6 +712,7 @@ function extractSpecialTag(stage, activities) {
                     title: activity.title,
                     label: activity.title,
                     awarded: false,
+                    link: activity.list === false ? activity.link : null,
                 });
             }
         }
@@ -1019,7 +1025,7 @@ function makeStageCard(stage, options = {}) {
     specialTags.forEach(tag => {
         const specialTag = document.createElement('a');
         specialTag.className = `badge ${tag.awarded ? 'bg-danger' : 'bg-accent'} me-1`;
-        specialTag.href = `/award/${encodeURIComponent(tag.title)}`;
+        specialTag.href = tag.link || `/award/${encodeURIComponent(tag.title)}`;
         specialTag.target = '_blank';
         specialTag.rel = 'noopener';
         specialTag.style.textDecoration = 'none';
