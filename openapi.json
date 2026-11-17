@@ -79,8 +79,8 @@
     },
     "/api/search/stage": {
       "get": {
-        "summary": "Search stages by name",
-        "description": "Searches stage_cache by stage name (case-insensitive LIKE).",
+        "summary": "Search stages by selected text fields",
+        "description": "Searches stage_cache with case-insensitive, literal substring LIKE matching. Selected fields are combined with OR.",
         "parameters": [
           {
             "name": "q",
@@ -90,6 +90,17 @@
             "schema": {
               "type": "string",
               "minLength": 1
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated search fields: name, intro, description. At least one field is required when provided. Omit to search names only.",
+            "schema": {
+              "type": "string",
+              "default": "name",
+              "example": "name,intro,description"
             }
           },
           {
@@ -116,7 +127,7 @@
             }
           },
           "400": {
-            "description": "Missing or empty search keyword.",
+            "description": "Missing or empty search keyword, or empty/invalid search fields.",
             "content": {
               "application/json": {
                 "schema": {

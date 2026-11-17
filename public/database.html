@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>奇域数据库 - Octavia</title>
     <meta name="name" itemprop="name" content="奇域数据库 - Octavia" />
-    <meta name="description" itemprop="description" content="Octavia 奇域数据库，支持按名称搜索已缓存的千星奇域。" />
+    <meta name="description" itemprop="description" content="Octavia 奇域数据库，支持按名称、玩法机制和关卡描述搜索已缓存的千星奇域。" />
     <meta name="keywords" content="Octavia, 奇域数据库, 千星奇域, 原神, 数据库搜索" />
     <link rel="icon" href="/favicon.ico" />
 
@@ -32,11 +32,26 @@
         <div class="text-center my-4 col-10 col-md-8 col-lg-6">
             <form id="searchForm" class="row g-2 align-items-center">
                 <div class="col-8 col-md-10">
-                    <input type="text" id="keywordInput" class="form-control" maxlength="100" placeholder="输入奇域名称，例如：迷城、跑酷、解谜" />
+                    <input type="text" id="keywordInput" class="form-control" maxlength="100" placeholder="输入关键词，例如：迷城、跑酷、解谜" />
                 </div>
                 <div class="col-4 col-md-2">
                     <button type="submit" id="searchButton" class="btn btn-primary w-100" disabled>搜索</button>
                 </div>
+                <fieldset class="col-12">
+                    <legend class="float-none fs-6 mb-1">搜索范围（可多选，至少选择一项）</legend>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="fields" id="searchName" value="name" checked />
+                        <label class="form-check-label" for="searchName">名称</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="fields" id="searchIntro" value="intro" />
+                        <label class="form-check-label" for="searchIntro">玩法机制</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="fields" id="searchDescription" value="description" />
+                        <label class="form-check-label" for="searchDescription">关卡描述</label>
+                    </div>
+                </fieldset>
             </form>
         </div>
 
@@ -87,14 +102,17 @@
 
         const pageState = {
             query: '',
+            fields: ['name'],
             displayPage: 1,
             allResults: [],
             nextBackendPage: false,
             lastBackendPage: 0,
         };
+        let isLoading = false;
 
         const keywordInput = document.getElementById('keywordInput');
         const searchButton = document.getElementById('searchButton');
+        const fieldInputs = document.querySelectorAll('input[name="fields"]');
         const emptyState = document.getElementById('emptyState');
         const emptyStateTitle = document.getElementById('emptyStateTitle');
         const emptyStateMessage = document.getElementById('emptyStateMessage');
@@ -103,6 +121,16 @@
         const paginationControls = document.querySelectorAll('.js-pagination-controls');
         const prevPageButtons = document.querySelectorAll('.js-prev-page-button');
         const nextPageButtons = document.querySelectorAll('.js-next-page-button');
+
+        function getSearchFields() {
+            return Array.from(fieldInputs).filter((input) => input.checked).map((input) => input.value);
+        }
+
+        function restoreSearchInputs() {
+            keywordInput.value = pageState.query;
+            fieldInputs.forEach((input) => { input.checked = pageState.fields.includes(input.value); });
+            updateSearchButtonState();
+        }
 
         function getDisplayResults() {
             const start = (pageState.displayPage - 1) * DISPLAY_PAGE_SIZE;
@@ -148,8 +176,14 @@
             if (!pageState.query) {
                 url.searchParams.delete('q');
                 url.searchParams.delete('page');
+                url.searchParams.delete('fields');
             } else {
                 url.searchParams.set('q', pageState.query);
+                if (pageState.fields.join(',') === 'name') {
+                    url.searchParams.delete('fields');
+                } else {
+                    url.searchParams.set('fields', pageState.fields.join(','));
+                }
                 if (pageState.displayPage > 1) {
                     url.searchParams.set('page', `${pageState.displayPage}`);
                 } else {
@@ -175,12 +209,13 @@
         }
 
         function updateSearchButtonState() {
-            searchButton.disabled = !keywordInput.value.trim();
+            searchButton.disabled = isLoading || !keywordInput.value.trim() || !getSearchFields().length;
         }
 
         function setLoading(loading) {
+            isLoading = loading;
             document.getElementById('loadingState').classList.toggle('d-none', !loading);
-            searchButton.disabled = loading || !keywordInput.value.trim();
+            updateSearchButtonState();
             if (loading) {
                 prevPageButtons.forEach((btn) => { btn.disabled = true; });
                 nextPageButtons.forEach((btn) => { btn.disabled = true; });
@@ -227,7 +262,11 @@
                 col.className = 'col result-stage-wrap';
                 col.style.animationDelay = `${index * 0.04}s`;
 
-                const stageCard = makeStageCard(stage, { showRegion: true });
+                const stageCard = makeStageCard(stage, {
+                    showRegion: true,
+                    highlightKeyword: pageState.query,
+                    highlightFields: pageState.fields,
+                });
                 col.appendChild(stageCard);
                 resultsDiv.appendChild(col);
             });
@@ -244,36 +283,42 @@
         }
 
         async function navigateToDisplayPage(targetPage) {
-            if (targetPage < 1) return;
+            if (targetPage < 1 || isLoading) return;
+            const fields = getSearchFields();
+            if (keywordInput.value.trim() !== pageState.query || fields.join(',') !== pageState.fields.join(',')) {
+                if (!window.confirm('搜索参数已修改。确认翻页将还原原本的查询条件，是否确认翻页？')) {
+                    return;
+                }
+                restoreSearchInputs();
+            }
             pageState.displayPage = targetPage;
             syncUrl();
 
             const neededCount = targetPage * DISPLAY_PAGE_SIZE;
-            if (pageState.allResults.length < neededCount && pageState.nextBackendPage) {
-                setLoading(true);
-                try {
+            setLoading(true);
+            try {
+                if (pageState.allResults.length < neededCount && pageState.nextBackendPage) {
                     while (pageState.allResults.length < neededCount && pageState.nextBackendPage) {
                         const nextBackendPage = pageState.lastBackendPage + 1;
-                        const data = await searchStageDatabase(pageState.query, nextBackendPage);
+                        const data = await searchStageDatabase(pageState.query, nextBackendPage, pageState.fields);
                         pageState.allResults.push(...(data.results || []));
                         pageState.nextBackendPage = !!data.next_page;
                         pageState.lastBackendPage = nextBackendPage;
                     }
-                } catch (error) {
-                    console.error('Failed to load more results:', error);
-                    setEmptyState('加载失败', error?.message || '请稍后重试。');
-                    emptyState.classList.remove('d-none');
-                    setLoading(false);
-                    return;
                 }
+                await renderCurrentDisplayPage();
+            } catch (error) {
+                console.error('Failed to load more results:', error);
+                setEmptyState('加载失败', error?.message || '请稍后重试。');
+                emptyState.classList.remove('d-none');
+            } finally {
                 setLoading(false);
             }
-
-            await renderCurrentDisplayPage();
         }
 
-        async function performSearch(query) {
+        async function performSearch(query, fields) {
             pageState.query = query;
+            pageState.fields = fields;
             pageState.displayPage = 1;
             pageState.allResults = [];
             pageState.nextBackendPage = false;
@@ -282,7 +327,7 @@
             setLoading(true);
 
             try {
-                const data = await searchStageDatabase(query, 1);
+                const data = await searchStageDatabase(query, 1, fields);
                 pageState.allResults = data.results || [];
                 pageState.nextBackendPage = !!data.next_page;
                 pageState.lastBackendPage = 1;
@@ -305,24 +350,18 @@
 
         document.getElementById('searchForm').addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (isLoading) return;
             const query = keywordInput.value.trim();
-            if (!query) {
-                resetView();
-                return;
-            }
+            const fields = getSearchFields();
+            if (!query || !fields.length) return;
             if (query.length < 2 && !window.confirm('关键字过少，仍要继续？')) {
                 return;
             }
-            await performSearch(query);
+            await performSearch(query, fields);
         });
 
-        keywordInput.addEventListener('input', () => {
-            updateSearchButtonState();
-            if (!keywordInput.value.trim()) {
-                pageState.query = '';
-                resetView();
-            }
-        });
+        keywordInput.addEventListener('input', updateSearchButtonState);
+        fieldInputs.forEach((input) => input.addEventListener('change', updateSearchButtonState));
 
         prevPageButtons.forEach((button) => {
             button.addEventListener('click', async () => {
@@ -345,16 +384,19 @@
 
             const params = new URLSearchParams(window.location.search);
             const initialQuery = (params.get('q') || '').trim();
+            const initialFields = (params.get('fields') ?? 'name').split(',');
+            fieldInputs.forEach((input) => { input.checked = initialFields.includes(input.value); });
             const initialPage = Number.parseInt(params.get('page') || '1', 10);
             const targetPage = (Number.isFinite(initialPage) && initialPage > 0) ? initialPage : 1;
 
             if (initialQuery) {
                 keywordInput.value = initialQuery;
                 pageState.query = initialQuery;
+                pageState.fields = getSearchFields();
                 updateSearchButtonState();
                 setLoading(true);
                 try {
-                    const data = await searchStageDatabase(initialQuery, 1);
+                    const data = await searchStageDatabase(initialQuery, 1, pageState.fields);
                     pageState.allResults = data.results || [];
                     pageState.nextBackendPage = !!data.next_page;
                     pageState.lastBackendPage = 1;

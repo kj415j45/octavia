@@ -1,5 +1,5 @@
 import { getStageInfo } from './apis/stage_info';
-import { searchStages } from './apis/stage_search';
+import { InvalidSearchFieldsError, searchStages } from './apis/stage_search';
 import { StageNotFoundError } from './octavia';
 import { getStatusData } from './apis/status';
 import { getAuthorInfo } from './apis/author';
@@ -63,8 +63,15 @@ export default {
 							return JSONResponse({ error: 'Search keyword is required' }, { status: 400 });
 						}
 						const page = url.searchParams.get('page');
-						const data = await searchStages(keyword, page);
-						return JSONResponse(data);
+						try {
+							const data = await searchStages(keyword, page, url.searchParams.get('fields'));
+							return JSONResponse(data);
+						} catch (error) {
+							if (error instanceof InvalidSearchFieldsError) {
+								return JSONResponse({ error: error.message }, { status: 400 });
+							}
+							throw error;
+						}
 					}
 					case 'bonus': {
 						const hash = url.searchParams.get('hash') || '';

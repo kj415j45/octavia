@@ -359,10 +359,11 @@ async function getAuthorInfo(uid) {
     return await response.json();
 }
 
-async function searchStageDatabase(keyword = '', page = 1) {
+async function searchStageDatabase(keyword = '', page = 1, fields = ['name']) {
     const params = new URLSearchParams({
         q: keyword,
         page: `${page}`,
+        fields: fields.join(','),
     });
     const response = await fetch(`${baseUrl}/api/search/stage?${params.toString()}`);
     const data = await response.json();
@@ -721,6 +722,24 @@ function extractSpecialTag(stage, activities) {
 }
 
 // Card creation
+function setHighlightedText(element, text, keyword) {
+    element.textContent = '';
+    if (!keyword) {
+        element.textContent = text;
+        return;
+    }
+    const pattern = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    let start = 0;
+    for (const match of text.matchAll(pattern)) {
+        element.appendChild(document.createTextNode(text.slice(start, match.index)));
+        const mark = document.createElement('mark');
+        mark.textContent = match[0];
+        element.appendChild(mark);
+        start = match.index + match[0].length;
+    }
+    element.appendChild(document.createTextNode(text.slice(start)));
+}
+
 function makeStageCard(stage, options = {}) {
     pushStage(stage);
     const level = stage.level;
@@ -931,7 +950,7 @@ function makeStageCard(stage, options = {}) {
 
     const name = document.createElement('h5');
     name.className = 'card-title mb-0 flex-grow-1';
-    name.textContent = meta.name;
+    setHighlightedText(name, meta.name, options.highlightFields?.includes('name') ? options.highlightKeyword : '');
 
     // Add version number if available (as inline element)
     if (stage.level?.version?.latest) {
@@ -966,7 +985,12 @@ function makeStageCard(stage, options = {}) {
     // Add intro
     const intro = document.createElement('li');
     intro.className = 'list-group-item';
-    intro.innerHTML = meta.intro.replace(/\n/g, '<br>');
+    if (options.highlightKeyword) {
+        setHighlightedText(intro, meta.intro, options.highlightFields?.includes('intro') ? options.highlightKeyword : '');
+        intro.style.whiteSpace = 'pre-line';
+    } else {
+        intro.innerHTML = meta.intro.replace(/\n/g, '<br>');
+    }
     intro.style.height = '5em';
     intro.style.overflowY = 'auto';
     textContainer.appendChild(intro);
@@ -974,7 +998,12 @@ function makeStageCard(stage, options = {}) {
     // Add description
     const description = document.createElement('li');
     description.className = 'list-group-item';
-    description.innerHTML = meta.description.replace(/\n/g, '<br>');
+    if (options.highlightKeyword) {
+        setHighlightedText(description, meta.description, options.highlightFields?.includes('description') ? options.highlightKeyword : '');
+        description.style.whiteSpace = 'pre-line';
+    } else {
+        description.innerHTML = meta.description.replace(/\n/g, '<br>');
+    }
     description.style.height = '7em';
     description.style.overflowY = 'auto';
     textContainer.appendChild(description);
