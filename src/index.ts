@@ -4,6 +4,7 @@ import { StageNotFoundError } from './octavia';
 import { getStatusData } from './apis/status';
 import { getAuthorInfo } from './apis/author';
 import { getActivityStageGuids } from './apis/activity';
+import { getRandomStageGuid } from './apis/random';
 import { handleMaintain } from './apis/maintain';
 import { runScheduled } from './scheduled';
 import { Global } from './global';
@@ -34,6 +35,13 @@ export default {
 				switch (endpoint) {
 					case 'test': {
 						return new Response('API is working!');
+					}
+					case 'random': {
+						const guid = await getRandomStageGuid();
+						if (guid === null) {
+							return JSONResponse({ error: 'No stages available' }, { status: 404 });
+						}
+						return JSONResponse({ guid }, { headers: { 'Cache-Control': 'no-store' } });
 					}
 					case 'stage': {
 						const region = url.searchParams.get('region') || '';

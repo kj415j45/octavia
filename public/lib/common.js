@@ -318,6 +318,18 @@ async function loadAwardData(title) {
 }
 
 // API utilities
+async function getRandomStageGuid() {
+    const response = await fetch(`${baseUrl}/api/random`, { cache: 'no-store' });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.error || `Random stage request failed with status ${response.status}`);
+    }
+    if (typeof data?.guid !== 'string' || !/^\d{10,}$/.test(data.guid)) {
+        throw new Error('Invalid random stage response');
+    }
+    return data.guid;
+}
+
 async function getStageInfo(region, id) {
     const normalizedRegion = region || '';
     const cacheKey = `${normalizedRegion}:${id}`;

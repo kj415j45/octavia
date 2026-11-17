@@ -666,6 +666,27 @@
             event.preventDefault();
             if (submitBtn.disabled) return;
             const input = stageIdsInput.value;
+            if (!input.trim()) {
+                let guid;
+                isSearching = true;
+                syncSearchInputState();
+                submitBtn.textContent = '查询中...';
+                try {
+                    guid = await getRandomStageGuid();
+                } catch (error) {
+                    console.error('Failed to load random stage:', error);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'alert alert-danger';
+                    errorDiv.textContent = '查询失败，请稍后重试。';
+                    document.getElementById('hints').replaceChildren(errorDiv);
+                    return;
+                } finally {
+                    isSearching = false;
+                    syncSearchInputState();
+                }
+                await loadStages(guid);
+                return;
+            }
             if(input.length <= 20){
                 const bonusMessage = document.querySelector('.bonus-message');
                 if(bonusMessage){
