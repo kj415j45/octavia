@@ -50,32 +50,24 @@ async function generateStageImage(stages, options = {}) {
     try {
         // Create container for the table
         const container = document.createElement('div');
-        container.style.position = 'absolute';
+        container.className = 'stage-image-export position-absolute bg-white';
         container.style.left = '-9999px';
-        container.style.background = '#ffffff';
         container.style.padding = '40px';
 
         // Header info section
         const headerInfo = document.createElement('div');
-        headerInfo.style.display = 'flex';
-        headerInfo.style.justifyContent = 'space-between';
-        headerInfo.style.marginBottom = '20px';
-        headerInfo.style.fontSize = '14px';
-        headerInfo.style.color = '#666';
+        headerInfo.className = 'd-flex justify-content-between mb-4 text-secondary';
 
         const countInfo = document.createElement('div');
         countInfo.textContent = `共 ${stages.length} 个`;
-        countInfo.style.flex = '1';
+        countInfo.className = 'col';
         headerInfo.appendChild(countInfo);
 
         // Single-region title, shown centered in the header row
         if (showRegionOnTop) {
             const regionTitle = document.createElement('div');
             regionTitle.textContent = regionMap[uniqueRegions[0]]?.name || uniqueRegions[0] || '未知';
-            regionTitle.style.flex = '1';
-            regionTitle.style.textAlign = 'center';
-            regionTitle.style.fontWeight = 'bold';
-            regionTitle.style.color = '#333';
+            regionTitle.className = 'col text-center fw-bold text-dark';
             headerInfo.appendChild(regionTitle);
         }
 
@@ -84,17 +76,14 @@ async function generateStageImage(stages, options = {}) {
         const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
         const isoTime = beijingTime.toISOString().slice(0, 16).replace('T', ' ');
         timeInfo.textContent = `${isoTime} (UTC+8)`;
-        timeInfo.style.flex = '1';
-        timeInfo.style.textAlign = 'right';
+        timeInfo.className = 'col text-end';
         headerInfo.appendChild(timeInfo);
 
         container.appendChild(headerInfo);
 
         // Create table
         const table = document.createElement('table');
-        table.style.borderCollapse = 'collapse';
-        table.style.width = '100%';
-        table.style.fontSize = '14px';
+        table.className = 'table w-100 mb-0 align-middle';
 
         // Create table header
         const thead = document.createElement('thead');
@@ -103,12 +92,7 @@ async function generateStageImage(stages, options = {}) {
         headers.forEach(headerText => {
             const th = document.createElement('th');
             th.textContent = headerText;
-            th.style.padding = '12px 8px';
-            th.style.textAlign = 'left';
-            th.style.borderBottom = '2px solid #dee2e6';
-            th.style.backgroundColor = '#f8f9fa';
-            th.style.fontWeight = 'bold';
-            if(headerText === '热度') th.style.textAlign = 'right';
+            th.className = `py-3 px-2 bg-light border-bottom border-2 border-top-0 border-start-0 border-end-0 fw-bold ${headerText === '热度' ? 'text-end' : 'text-start'}`;
             headerRow.appendChild(th);
         });
         thead.appendChild(headerRow);
@@ -122,30 +106,26 @@ async function generateStageImage(stages, options = {}) {
             const isRemovedConfirmed = isRemoved && stage.status.upstream !== null;
             const isRemovedTimeout = isRemoved && stage.status.upstream === null;
             if (isRemovedConfirmed) {
-                row.style.backgroundColor = '#fff5f5';
+                row.className = 'bg-danger bg-opacity-10';
             } else if (isRemovedTimeout) {
-                row.style.backgroundColor = '#fffbf0';
+                row.className = 'bg-warning bg-opacity-10';
             } else if (index % 2 === 1) {
-                row.style.backgroundColor = '#f8f9fa';
+                row.className = 'bg-light';
             }
 
             // ID column
             const idCell = document.createElement('td');
-            idCell.style.padding = '12px 8px';
-            idCell.style.borderBottom = '1px solid #dee2e6';
 
             if (showRegionPerRow) {
                 const regionText = regionMap[stage.level.region]?.name || stage.level.region || '未知';
 
                 const regionLine = document.createElement('div');
                 regionLine.textContent = regionText;
-                regionLine.style.fontSize = '12px';
-                regionLine.style.color = '#666';
-                regionLine.style.marginBottom = '2px';
+                regionLine.className = 'small text-secondary mb-1';
 
                 const idLine = document.createElement('div');
                 idLine.textContent = stage.level.id;
-                idLine.style.fontWeight = '600';
+                idLine.className = 'fw-semibold';
 
                 idCell.appendChild(regionLine);
                 idCell.appendChild(idLine);
@@ -158,17 +138,13 @@ async function generateStageImage(stages, options = {}) {
             // Author column
             const authorCell = document.createElement('td');
             authorCell.textContent = stage.author.game?.name || stage.author.mys?.name || stage.author.hyl?.name || '未知';
-            authorCell.style.padding = '12px 8px';
-            authorCell.style.borderBottom = '1px solid #dee2e6';
             row.appendChild(authorCell);
 
             // Name and tags column
             const nameCell = document.createElement('td');
-            nameCell.style.padding = '12px 8px';
-            nameCell.style.borderBottom = '1px solid #dee2e6';
             
             const nameDiv = document.createElement('div');
-            nameDiv.style.marginBottom = '4px';
+            nameDiv.className = 'mb-1';
             
             const nameText = document.createElement('span');
             nameText.textContent = stage.level.meta.name;
@@ -178,8 +154,7 @@ async function generateStageImage(stages, options = {}) {
             if (stage.level?.version?.latest) {
                 const versionSpan = document.createElement('span');
                 versionSpan.textContent = `   v${stage.level.version.latest}`;
-                versionSpan.style.fontSize = '11px';
-                versionSpan.style.color = '#999';
+                versionSpan.className = 'small text-secondary';
                 nameDiv.appendChild(versionSpan);
             }
 
@@ -191,31 +166,20 @@ async function generateStageImage(stages, options = {}) {
             // Category badge
             const categoryBadge = document.createElement('span');
             categoryBadge.textContent = stage.level.meta.category;
-            categoryBadge.style.display = 'inline-block';
-            categoryBadge.style.padding = '2px 8px';
-            categoryBadge.style.marginRight = '4px';
-            categoryBadge.style.fontSize = '12px';
-            categoryBadge.style.color = '#ffffff';
-            categoryBadge.style.borderRadius = '4px';
+            categoryBadge.className = 'badge me-1';
             if (stage.level.meta.category === '轻量趣味') {
-                categoryBadge.style.backgroundColor = '#198754';
+                categoryBadge.classList.add('bg-success');
             } else if (stage.level.meta.category === '长线游玩') {
-                categoryBadge.style.backgroundColor = '#ffc107';
+                categoryBadge.classList.add('bg-warning');
             } else {
-                categoryBadge.style.backgroundColor = '#6c757d';
+                categoryBadge.classList.add('bg-secondary');
             }
             badgesDiv.appendChild(categoryBadge);
 
             // Type badge
             const typeBadge = document.createElement('span');
             typeBadge.textContent = stage.level.meta.type;
-            typeBadge.style.display = 'inline-block';
-            typeBadge.style.padding = '2px 8px';
-            typeBadge.style.marginRight = '4px';
-            typeBadge.style.fontSize = '12px';
-            typeBadge.style.backgroundColor = '#6c757d';
-            typeBadge.style.color = '#ffffff';
-            typeBadge.style.borderRadius = '4px';
+            typeBadge.className = 'badge bg-secondary me-1';
             badgesDiv.appendChild(typeBadge);
 
             // Tags
@@ -223,13 +187,7 @@ async function generateStageImage(stages, options = {}) {
                 stage.level.meta.tags.forEach(tag => {
                     const badge = document.createElement('span');
                     badge.textContent = tag;
-                    badge.style.display = 'inline-block';
-                    badge.style.padding = '2px 8px';
-                    badge.style.marginRight = '4px';
-                    badge.style.fontSize = '12px';
-                    badge.style.backgroundColor = '#0d6efd';
-                    badge.style.color = '#ffffff';
-                    badge.style.borderRadius = '4px';
+                    badge.className = 'badge bg-primary me-1';
                     badgesDiv.appendChild(badge);
                 });
             }
@@ -238,13 +196,7 @@ async function generateStageImage(stages, options = {}) {
             specialTags.forEach(tag => {
                 const specialTag = document.createElement('span');
                 specialTag.textContent = tag.label;
-                specialTag.style.display = 'inline-block';
-                specialTag.style.padding = '2px 8px';
-                specialTag.style.marginRight = '4px';
-                specialTag.style.fontSize = '12px';
-                specialTag.style.backgroundColor = tag.awarded ? '#dc3545' : '#7740ff';
-                specialTag.style.color = '#ffffff';
-                specialTag.style.borderRadius = '4px';
+                specialTag.className = `badge me-1 ${tag.awarded ? 'bg-danger' : 'bg-accent'}`;
                 badgesDiv.appendChild(specialTag);
             });
 
@@ -253,94 +205,60 @@ async function generateStageImage(stages, options = {}) {
 
             // Popularity column (right-aligned)
             const popularityCell = document.createElement('td');
-            popularityCell.style.padding = '12px 8px';
-            popularityCell.style.borderBottom = '1px solid #dee2e6';
-            popularityCell.style.textAlign = 'right';
+            popularityCell.className = 'text-end';
             
             const popularityBadge = document.createElement('span');
             popularityBadge.textContent = stage.level.meta.hotScore;
-            popularityBadge.style.display = 'inline-block';
-            popularityBadge.style.padding = '4px 8px';
-            popularityBadge.style.fontSize = '12px';
-            popularityBadge.style.color = '#ffffff';
-            popularityBadge.style.borderRadius = '4px';
             const popClass = getPopularityBadgeClass(stage.level.meta.hotScore);
-            const popColors = {
-                'bg-danger': '#dc3545',
-                'bg-warning': '#ffc107',
-                'bg-primary': '#0d6efd',
-                'bg-success': '#198754',
-                'bg-secondary': '#6c757d'
-            };
-            popularityBadge.style.backgroundColor = popColors[popClass];
+            popularityBadge.className = `badge ${popClass}`;
             popularityCell.appendChild(popularityBadge);
             row.appendChild(popularityCell);
 
             // Rating column (left-aligned)
             const ratingCell = document.createElement('td');
-            ratingCell.style.padding = '12px 8px';
-            ratingCell.style.borderBottom = '1px solid #dee2e6';
-            ratingCell.style.textAlign = 'left';
+            ratingCell.className = 'text-start';
             
             const ratingBadge = document.createElement('span');
             ratingBadge.textContent = stage.level.meta.goodRate + ` (${stage.level.meta.comments})`;
-            ratingBadge.style.display = 'inline-block';
-            ratingBadge.style.padding = '4px 8px';
-            ratingBadge.style.fontSize = '12px';
-            ratingBadge.style.color = '#ffffff';
-            ratingBadge.style.borderRadius = '4px';
             const rateClass = getRatingBadgeClass(stage.level.meta.goodRate);
-            const rateColors = {
-                'bg-success': '#198754',
-                'bg-primary': '#0d6efd',
-                'bg-warning': '#ffc107',
-                'bg-danger': '#dc3545',
-                'bg-secondary': '#6c757d'
-            };
-            ratingBadge.style.backgroundColor = rateColors[rateClass];
+            ratingBadge.className = `badge ${rateClass}`;
             ratingCell.appendChild(ratingBadge);
             row.appendChild(ratingCell);
 
             // Players column
             const playersCell = document.createElement('td');
-            playersCell.style.padding = '12px 8px';
-            playersCell.style.borderBottom = '1px solid #dee2e6';
             
             const playersBadge = document.createElement('span');
             playersBadge.textContent = `${stage.level.meta.players.str}人`;
-            playersBadge.style.display = 'inline-block';
-            playersBadge.style.padding = '4px 8px';
-            playersBadge.style.fontSize = '12px';
-            playersBadge.style.color = '#ffffff';
-            playersBadge.style.borderRadius = '4px';
-            
-            let playerBgColor;
+            let playerBadgeClass;
             if (stage.level.meta.players.str.startsWith('1')) {
-                playerBgColor = stage.level.meta.players.str.startsWith('1-') ? '#0dcaf0' : '#198754';
+                playerBadgeClass = stage.level.meta.players.str.startsWith('1-') ? 'bg-info' : 'bg-success';
             } else {
-                playerBgColor = '#ffc107';
+                playerBadgeClass = 'bg-warning';
             }
-            playersBadge.style.backgroundColor = playerBgColor;
+            playersBadge.className = `badge ${playerBadgeClass}`;
             playersCell.appendChild(playersBadge);
 
             row.appendChild(playersCell);
 
             tbody.appendChild(row);
 
+            Array.from(row.cells).forEach(cell => {
+                cell.classList.add('py-3', 'px-2', 'bg-transparent');
+            });
+
             // Apply colored border to removed rows
             if (isRemovedConfirmed) {
-                Array.from(row.cells).forEach((cell, i) => {
-                    cell.style.borderTop = '2px solid #dc3545';
-                    cell.style.borderBottom = '2px solid #dc3545';
-                    if (i === 0) cell.style.borderLeft = '2px solid #dc3545';
-                    if (i === row.cells.length - 1) cell.style.borderRight = '2px solid #dc3545';
+                Array.from(row.cells).forEach((cell, cellIndex) => {
+                    cell.classList.add('border-top', 'border-bottom', 'border-2', 'border-danger');
+                    cell.classList.add(cellIndex === 0 ? 'border-start' : 'border-start-0');
+                    cell.classList.add(cellIndex === row.cells.length - 1 ? 'border-end' : 'border-end-0');
                 });
             } else if (isRemovedTimeout) {
-                Array.from(row.cells).forEach((cell, i) => {
-                    cell.style.borderTop = '2px solid #fd7e14';
-                    cell.style.borderBottom = '2px solid #fd7e14';
-                    if (i === 0) cell.style.borderLeft = '2px solid #fd7e14';
-                    if (i === row.cells.length - 1) cell.style.borderRight = '2px solid #fd7e14';
+                Array.from(row.cells).forEach((cell, cellIndex) => {
+                    cell.classList.add('border-top', 'border-bottom', 'border-2', 'border-warning');
+                    cell.classList.add(cellIndex === 0 ? 'border-start' : 'border-start-0');
+                    cell.classList.add(cellIndex === row.cells.length - 1 ? 'border-end' : 'border-end-0');
                 });
             }
         });
@@ -350,10 +268,8 @@ async function generateStageImage(stages, options = {}) {
 
         // Footer info section
         const footerInfo = document.createElement('div');
-        footerInfo.style.textAlign = 'center';
-        footerInfo.style.marginTop = '20px';
+        footerInfo.className = 'text-center mt-4 text-secondary';
         footerInfo.style.fontSize = '12px';
-        footerInfo.style.color = '#666';
 
         const footerText = document.createElement('span');
         footerText.textContent = 'Generated by ';
@@ -361,8 +277,7 @@ async function generateStageImage(stages, options = {}) {
 
         const repoLink = document.createElement('span');
         repoLink.textContent = 'kj415j45/octavia';
-        repoLink.style.color = '#0d6efd';
-        repoLink.style.fontWeight = 'bold';
+        repoLink.className = 'text-primary fw-bold';
         footerInfo.appendChild(repoLink);
 
         const footerText2 = document.createElement('span');
@@ -377,7 +292,10 @@ async function generateStageImage(stages, options = {}) {
         const canvas = await html2canvas(container, {
             backgroundColor: '#ffffff',
             scale: 2,
-            logging: false
+            logging: false,
+            ignoreElements: element => document.body.contains(element)
+                && !container.contains(element)
+                && !element.contains(container)
         });
 
         // Remove temporary container

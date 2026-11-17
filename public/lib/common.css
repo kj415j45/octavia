@@ -16,6 +16,15 @@ body {
     font-family: var(--bs-body-font-family);
 }
 
+.stage-image-export,
+.stage-image-export * {
+    font-family: 'HY WenHei', sans-serif !important;
+}
+
+.stage-image-export .badge {
+    font-weight: normal;
+}
+
 .bg-accent {
     --bs-bg-opacity: 1;
     background-color: rgba(119, 64, 255, var(--bs-bg-opacity)) !important;
